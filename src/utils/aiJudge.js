@@ -1,13 +1,17 @@
 /**
  * AI 수석 심판관 (AlphaDog) 채점 및 평가 엔진
+ * - 주식, ETF, 연금·TDF 복합 자산군 평가 지원
  * Mode 1: Google Gemini Flash REST API (API 키 제공 시)
  * Mode 2: Deterministic AI Simulation Engine (Zero API Key 내장 엔진)
  */
 
 export async function evaluatePortfolio({ stocks, mission, userProfile, partnerBot, apiKey }) {
-  // 1. 공통 수치 계산 (고유 섹터 수, 미션 정합성 등)
+  // 1. 공통 수치 계산 (고유 섹터 수, 자산군 다양성, 미션 정합성 등)
   const sectors = stocks.map(s => s.sector);
   const uniqueSectors = new Set(sectors).size;
+  
+  const categories = stocks.map(s => s.category || 'STOCK');
+  const uniqueCategories = new Set(categories).size; // 주식, ETF, 연금 다양성
   
   // 미션 타겟 섹터와 일치하는 종목 수
   const targetSectorMatches = stocks.filter(s => 
@@ -16,21 +20,27 @@ export async function evaluatePortfolio({ stocks, mission, userProfile, partnerB
   const isMissionMatched = targetSectorMatches.length >= 2;
 
   // 기본 채점 알고리즘
-  let baseScore = 80;
-  if (uniqueSectors >= 3) baseScore += 10;
-  else if (uniqueSectors === 2) baseScore += 5;
+  let baseScore = 78;
+  if (uniqueSectors >= 3) baseScore += 8;
+  else if (uniqueSectors === 2) baseScore += 4;
 
-  if (isMissionMatched) baseScore += 8;
+  // 주식 + ETF + 연금 복합 자산 배분 보너스
+  if (uniqueCategories >= 3) baseScore += 8; // 3개 자산군 골고루 조합 시 최고 가산점
+  else if (uniqueCategories === 2) baseScore += 5;
 
-  // 약간의 가중치 변동 (종목별 평균 상승률 및 시가총액 가중)
+  if (isMissionMatched) baseScore += 6;
+
+  // 변동성 및 등락률 가중치
   const avgChange = stocks.reduce((acc, s) => acc + s.change, 0) / stocks.length;
   if (avgChange > 1.0) baseScore += 2;
 
-  const finalScore = Math.min(98, Math.max(72, baseScore));
-  const expectedReturn = "+" + (finalScore * 0.28).toFixed(1) + "%";
-  const mdd = "-" + (22 - finalScore * 0.15).toFixed(1) + "%";
-  const sharpeRatio = (finalScore / 55).toFixed(2);
-  const volatility = finalScore >= 90 ? "낮음 (9.8%)" : finalScore >= 80 ? "보통 (14.2%)" : "다소 높음 (18.6%)";
+  const finalScore = Math.min(99, Math.max(74, baseScore));
+  const expectedReturn = "+" + (finalScore * 0.27).toFixed(1) + "%";
+  const mdd = "-" + (20 - finalScore * 0.14).toFixed(1) + "%";
+  const sharpeRatio = (finalScore / 52).toFixed(2);
+  const volatility = uniqueCategories >= 2 
+    ? "매우 안정적 (7.5%)" 
+    : finalScore >= 88 ? "낮음 (9.8%)" : "보통 (13.4%)";
 
   // Mode 1: Custom Gemini API Key 사용 시도
   if (apiKey && apiKey.trim().length > 10) {
@@ -59,6 +69,7 @@ export async function evaluatePortfolio({ stocks, mission, userProfile, partnerB
     finalScore,
     metrics: { expectedReturn, volatility, mdd, sharpeRatio },
     uniqueSectors,
+    uniqueCategories,
     isMissionMatched
   });
 }
@@ -67,11 +78,14 @@ export async function evaluatePortfolio({ stocks, mission, userProfile, partnerB
 async function callGeminiAPI({ apiKey, stocks, mission, userProfile, partnerBot, calculatedScore, metrics }) {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   
-  const stockSummary = stocks.map(s => `${s.name}(${s.code}, ${s.sector}, 현재가 ${s.price.toLocaleString()}원)`).join(", ");
+  const stockSummary = stocks.map(s => {
+    const cat = s.category === 'ETF' ? '[ETF]' : s.category === 'PENSION' ? '[연금상품]' : '[국내주식]';
+    return `${cat} ${s.name}(${s.code}, ${s.sector}, 가격 ${s.price.toLocaleString()}원)`;
+  }).join(", ");
   
   const prompt = `
-당신은 대한민국 최고 증권사의 냉철하고 위트 넘치는 'AI 수석 심판관 알파독(AlphaDog)'입니다.
-두 명의 익명 투자자(${userProfile.nickname} & ${partnerBot.name})가 제한시간 동안 공동으로 작성한 3종목 포트폴리오를 심사합니다.
+당신은 대한민국 최고 금융투자사의 냉철하고 위트 넘치는 'AI 수석 심판관 알파독(AlphaDog)'입니다.
+두 명의 익명 투자자(${userProfile.nickname} & ${partnerBot.name || partnerBot.nickname})가 제한시간 동안 공동으로 작성한 3개 자산(주식, ETF, 연금상품) 포트폴리오를 심사합니다.
 
 [미션 정보]
 - 미션명: ${mission.title}
@@ -79,7 +93,7 @@ async function callGeminiAPI({ apiKey, stocks, mission, userProfile, partnerBot,
 - 가이드: ${mission.description}
 - 권장 섹터: ${mission.targetSectors.join(", ")}
 
-[선택된 3종목]
+[선택된 3개 자산 (주식/ETF/연금)]
 ${stockSummary}
 
 [사전 산출된 케미 점수 및 지표]
@@ -89,26 +103,26 @@ ${stockSummary}
 - 최대 낙폭(MDD): ${metrics.mdd}
 - 샤프지수: ${metrics.sharpeRatio}
 
-다음 JSON 스키마 규격으로만 응답해주세요. 마크다운 따옴표나 기타 텍스트 없이 순수 JSON만 반환하세요:
+주식의 개별 알파 모멘텀과 ETF의 시장 추종, 연금 상품의 절세 및 생애주기 하방 헷지 관점을 종합하여 다음 JSON 스키마 규격으로만 응답해주세요. 마크다운 따옴표나 기타 텍스트 없이 순수 JSON만 반환하세요:
 {
   "chemistryScore": ${calculatedScore},
-  "teamTitle": "포트폴리오의 특징을 위트있게 나타내는 듀오 별칭 (예: '🔥 불나방과 자린고비의 황금 헷지단')",
+  "teamTitle": "포트폴리오의 특징을 위트있게 나타내는 듀오 별칭 (예: '🛡️ 주식야수와 연금현자의 올웨더 듀오')",
   "verdictSummary": "심판관 특유의 날카로운 팩트폭격과 칭찬이 담긴 2~3문장의 종합 심사평",
   "roles": [
     {
       "name": "${stocks[0].name}",
-      "role": "메인 딜러 (포트폴리오 견인)",
-      "comment": "이 종목의 역할과 선택 이유에 대한 1줄 코멘트"
+      "role": "${stocks[0].category === 'PENSION' ? '연금 절세 방패' : stocks[0].category === 'ETF' ? '글로벌 지수 엔진' : '메인 알파 딜러'}",
+      "comment": "이 자산의 역할과 선택 이유에 대한 1줄 코멘트"
     },
     {
       "name": "${stocks[1].name}",
-      "role": "안전 방패 (하방 리스크 방어)",
-      "comment": "이 종목의 역할과 선택 이유에 대한 1줄 코멘트"
+      "role": "${stocks[1].category === 'PENSION' ? '연금 생애주기 코어' : stocks[1].category === 'ETF' ? '테마 분산 기둥' : '모멘텀 파트너'}",
+      "comment": "이 자산의 역할과 선택 이유에 대한 1줄 코멘트"
     },
     {
       "name": "${stocks[2].name}",
-      "role": "전략 조커 (이벤트 드리븐)",
-      "comment": "이 종목의 역할과 선택 이유에 대한 1줄 코멘트"
+      "role": "${stocks[2].category === 'PENSION' ? '안전 자산 파킹' : stocks[2].category === 'ETF' ? '월배당 현금 파이프' : '수익 극대화 조커'}",
+      "comment": "이 자산의 역할과 선택 이유에 대한 1줄 코멘트"
     }
   ],
   "synergyPoints": [
@@ -156,51 +170,67 @@ ${stockSummary}
 }
 
 // 브라우저 내장 심사 생성 엔진 (Zero API Key Fallback)
-function generateDeterministicReport({ stocks, mission, finalScore, metrics, uniqueSectors, isMissionMatched }) {
-  // 별칭 생성 풀
+function generateDeterministicReport({ stocks, mission, finalScore, metrics, uniqueSectors, uniqueCategories, isMissionMatched }) {
   const titles = [
-    "🔥 야수와 방패의 황금 헷지 듀오",
-    "💎 여의도 불사조 알파 사냥꾼들",
-    "⚡ 번개 손가락과 냉철한 가치분석가",
-    "🛡️ 폭풍우를 뚫는 절대 방어 바스켓",
-    "🚀 텐배거를 꿈꾸는 하이퍼 그로스 듀오"
+    "🛡️ 주식야수와 연금현자의 올웨더 듀오",
+    "💎 개별주와 ETF를 아우르는 천상계 자산배분가",
+    "🚀 고수익 모멘텀 & 연금 복리 파이프라인 듀오",
+    "🌐 글로벌 헷지와 세액공제를 챙긴 스마트 바스켓",
+    "⚡ 변동성을 잠재우는 황금 트라이앵글"
   ];
   const teamTitle = titles[Math.floor(Math.random() * titles.length)];
 
-  // 종합 심사평 생성
-  let verdictSummary = "";
-  if (finalScore >= 90) {
-    verdictSummary = `[수석 심판관 알파독 극찬] "${mission.title} 미션 의도를 200% 간파한 황금 포트폴리오입니다. ${stocks[0].name}의 폭발적인 추진력과 ${stocks[1].name}의 견고한 안전판이 결합되어 어떤 변동성 장세에서도 초과수익(Alpha)을 창출할 수 있는 압도적 밸런스입니다."`;
-  } else if (finalScore >= 82) {
-    verdictSummary = `[수석 심판관 알파독 판정] "티키타카 합의 과정에서 서로의 단점을 영리하게 보완했습니다. ${stocks[0].name}과 ${stocks[2].name}의 조합은 시장 트렌드에 기민하게 대응하며, 섹터 분산(${uniqueSectors}개)도 합격점입니다. 단, 대외 매크로 금리 변동성에 유의하세요."`;
+  // 역할 배정
+  const roles = stocks.map((s, idx) => {
+    let role = "메인 알파 딜러";
+    let comment = `${s.name}은 포트폴리오의 중추적인 수익 드라이버 역할을 충실히 수행합니다.`;
+
+    if (s.category === 'PENSION') {
+      role = "🛡️ 연금 생애주기 방패";
+      comment = `장기 복리와 세액공제 혜택을 챙기며 계좌의 최대 낙폭(MDD)을 방어합니다.`;
+    } else if (s.category === 'ETF') {
+      role = "📊 글로벌 시장 추종 코어";
+      comment = `개별 종목 리스크를 헷지하고 지수/테마의 평균 초과수익을 안정적으로 추구합니다.`;
+    } else {
+      if (idx === 0) {
+        role = "🔥 모멘텀 공격수";
+        comment = `수급과 산업 모멘텀을 주도하며 포트폴리오의 탄력을 끌어올립니다.`;
+      } else {
+        role = "⚡ 전략적 알파 포지션";
+        comment = `상승장에서 초과 수익을 발생시키는 핵심 카드로 작용합니다.`;
+      }
+    }
+
+    return {
+      name: s.name,
+      role,
+      comment
+    };
+  });
+
+  // 자산군 조합 평가 멘트
+  let assetBalanceComment = "";
+  if (uniqueCategories >= 3) {
+    assetBalanceComment = "개별 주식의 폭발력, ETF의 시장 분산, 연금 상품의 세제 혜택과 하방 지지력이 삼위일체를 이룬 교과서적인 포트폴리오입니다.";
+  } else if (uniqueCategories === 2) {
+    assetBalanceComment = "주식과 ETF/연금을 적절히 교차 배치하여 공격성과 안전성의 밸런스를 훌륭하게 잡아냈습니다.";
   } else {
-    verdictSummary = `[수석 심판관 알파독 경고] "열정은 인정하지만 포트폴리오 상관계수 관리가 아쉽습니다. ${stocks[0].name}에 실린 비중이 높아 하락장 충격 시 동반 흔들림이 발생할 수 있습니다. 한투 MTS에서 주문 시 분할 매수로 대응하십시오."`;
+    assetBalanceComment = "단일 자산군 중심의 집중 투자가 돋보이나, 향후 ETF나 연금 자산 추가 배분 시 더욱 강력한 헷지가 기대됩니다.";
   }
 
-  // 3개 종목별 역할 분담
-  const roleNames = [
-    "메인 딜러 (포트폴리오 견인)",
-    "안전 방패 (하방 리스크 방어)",
-    "전략 조커 (이벤트 드리븐)"
-  ];
+  const verdictSummary = `AI 심판관 알파독의 종합 평점 ${finalScore}점! [${mission.title}] 미션 의도를 ${isMissionMatched ? '정확히 간파한' : '창의적으로 재해석한'} 포트폴리오입니다. ${assetBalanceComment}`;
 
-  const roles = stocks.map((s, idx) => ({
-    name: s.name,
-    code: s.code,
-    role: roleNames[idx] || "서포터",
-    comment: `${s.sector}의 독보적 지위와 ${s.tags.slice(0, 2).join(' ')} 모멘텀을 바탕으로 팀의 ${idx === 0 ? '수익률 폭발' : idx === 1 ? '원금 안전성' : '초과 알파'}를 책임집니다.`
-  }));
-
-  // 시너지 & 리스크 포인트
   const synergyPoints = [
-    `총 ${uniqueSectors}개 고유 산업군 분산 투자로 단일 섹터 악재 방어력 확보`,
-    `${stocks[0].name}의 성장 모멘텀과 ${stocks[1].name}의 밸류에이션 안정성이 교차 헷지 구현`,
-    `현재 시장 핵심 테마(${mission.subtitle})와의 유의미한 정합성 확보`
+    `자산 분산도 우수: ${stocks.map(s => s.name).join(' + ')} 간 상관계수 상쇄 효과`,
+    uniqueCategories >= 2 
+      ? `절세 & 월배당 시너지: ETF와 연금 자산 편입으로 변동성 ${metrics.volatility} 달성` 
+      : `섹터 분산 시너지: 서로 다른 산업군 결합으로 하방 리스크 완화`,
+    `기대 샤프지수 ${metrics.sharpeRatio}로 위험 대비 보상 비율(Risk-Reward) 최적화`
   ];
 
   const riskWarnings = [
-    `원달러 환율 급등 및 미 연준 기준금리 동결 시 일시적 외인 차익실현 경계`,
-    `단기 과열 국면 진입 시 분할 매수 주문(MTS 주문 분산) 필수`
+    `단기 시장 금리 급변 및 환율 변동성 국면에서의 일시적 조정에 유의하세요.`,
+    `연금저축 및 IRP 계좌 연계 시 중도 해지 대신 만기 수령 전략을 유지하는 것이 유리합니다.`
   ];
 
   return {
@@ -208,8 +238,8 @@ function generateDeterministicReport({ stocks, mission, finalScore, metrics, uni
     teamTitle,
     verdictSummary,
     roles,
-    metrics,
     synergyPoints,
-    riskWarnings
+    riskWarnings,
+    metrics
   };
 }

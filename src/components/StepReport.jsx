@@ -185,7 +185,16 @@ export default function StepReport({
                   className="p-4 rounded-2xl bg-gray-950/80 border border-gray-800 hover:border-gray-700 transition"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-mono text-gray-500">{matchedStock?.code}</span>
+                    <div className="flex items-center gap-1.5">
+                      {matchedStock?.category === 'ETF' ? (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">ETF</span>
+                      ) : matchedStock?.category === 'PENSION' ? (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">연금·TDF</span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold">주식</span>
+                      )}
+                      <span className="text-xs font-mono text-gray-500">{matchedStock?.code}</span>
+                    </div>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 font-semibold">
                       SLOT 0{idx + 1}
                     </span>
@@ -347,11 +356,20 @@ export default function StepReport({
                   className="p-3 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-between"
                 >
                   <div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {s.category === 'ETF' ? (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold">ETF</span>
+                      ) : s.category === 'PENSION' ? (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">연금펀드</span>
+                      ) : (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">주식</span>
+                      )}
                       <span className="font-bold text-sm text-white">{s.name}</span>
                       <span className="text-xs font-mono text-gray-400">{s.code}</span>
                     </div>
-                    <span className="text-[11px] text-gray-400">현재가: {s.price.toLocaleString()}원</span>
+                    <span className="text-[11px] text-gray-400">
+                      {s.category === 'PENSION' ? '연금저축/IRP 매수 가능' : `현재가: ${s.price?.toLocaleString()}원`}
+                    </span>
                   </div>
 
                   <a
@@ -360,7 +378,7 @@ export default function StepReport({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-xs font-semibold border border-blue-500/30 transition"
                   >
-                    <span>한투 주문</span>
+                    <span>{s.category === 'PENSION' ? '연금 매수' : '한투 주문'}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
