@@ -43,7 +43,7 @@ export default function ApiKeyModal({ isOpen, onClose, apiKey, onSaveApiKey }) {
 
         <div className="mb-4 text-xs text-gray-300 leading-relaxed bg-gray-800/50 p-3 rounded-xl border border-gray-700/50">
           <p className="mb-1">
-            💡 <strong>API 키 없이도 100% 정상 작동합니다.</strong> 키 미입력 시 내장된 <strong>고도화 AX 시뮬레이션 알고리즘</strong>으로 즉시 판정합니다.
+            💡 <strong>API 키 없이도 100% 정상 작동합니다.</strong> 키 미입력 시 내장된 <strong>고도화 AI 시뮬레이션 알고리즘</strong>으로 즉시 판정합니다.
           </p>
           <a
             href="https://aistudio.google.com/app/apikey"

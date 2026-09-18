@@ -1,7 +1,7 @@
 /**
  * AI 수석 심판관 (AlphaDog) 채점 및 평가 엔진
  * Mode 1: Google Gemini Flash REST API (API 키 제공 시)
- * Mode 2: Deterministic AX Simulation Engine (Zero API Key 내장 엔진)
+ * Mode 2: Deterministic AI Simulation Engine (Zero API Key 내장 엔진)
  */
 
 export async function evaluatePortfolio({ stocks, mission, userProfile, partnerBot, apiKey }) {
@@ -48,11 +48,11 @@ export async function evaluatePortfolio({ stocks, mission, userProfile, partnerB
         return geminiResult;
       }
     } catch (err) {
-      console.warn("Gemini API call failed, falling back to built-in AX engine:", err);
+      console.warn("Gemini API call failed, falling back to built-in AI engine:", err);
     }
   }
 
-  // Mode 2: 브라우저 내장 고성능 AX 시뮬레이션 엔진
+  // Mode 2: 브라우저 내장 고성능 AI 시뮬레이션 엔진
   return generateDeterministicReport({
     stocks,
     mission,

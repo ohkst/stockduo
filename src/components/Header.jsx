@@ -32,7 +32,7 @@ export default function Header({ onOpenApiKeyModal, apiKey, onReset }) {
                 StockDuo
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                AX 경진대회
+                AI 주식 바스켓
               </span>
             </div>
             <p className="text-[10px] text-gray-400 font-medium hidden sm:block">

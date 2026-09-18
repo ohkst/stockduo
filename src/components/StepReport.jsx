@@ -275,7 +275,7 @@ export default function StepReport({
 
         {/* 워터마크 푸터 */}
         <div className="mt-6 pt-4 border-t border-gray-800/80 flex items-center justify-between text-[11px] text-gray-500">
-          <span>한국투자증권 AX 경진대회 출품작 · StockDuo</span>
+          <span>한국투자증권 연계 공식 서비스 · StockDuo</span>
           <span>TrueFriend MTS Connected</span>
         </div>
       </div>

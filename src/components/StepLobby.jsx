@@ -49,7 +49,7 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>증권사 AX 혁신 프로젝트 : StockDuo</span>
+          <span>차세대 AI 주식 듀오 플랫폼 : StockDuo</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">
           익명의 파트너와 함께하는<br />

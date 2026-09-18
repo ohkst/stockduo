@@ -155,7 +155,7 @@ export default function App() {
 
       {/* 푸터 */}
       <footer className="py-4 text-center text-xs text-gray-600 border-t border-gray-900">
-        © 2026 StockDuo · 증권사 AX 경진대회 출품작 · Korea Investment & Securities 연계
+        © 2026 StockDuo · Korea Investment & Securities 연계 핀테크 플랫폼
       </footer>
 
       {/* API Key Modal */}
