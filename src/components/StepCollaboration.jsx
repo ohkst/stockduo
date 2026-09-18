@@ -3,7 +3,8 @@ import { MOCK_STOCKS } from '../data/stocks';
 import RankEmblem from './RankEmblem';
 import { 
   Clock, Search, Check, Send, Sparkles, AlertCircle, Bot, ThumbsUp, Flame, 
-  Rocket, X, HelpCircle, ChevronRight, Award, Crown, Users, Layers, ShieldCheck, TrendingUp
+  Rocket, X, HelpCircle, ChevronRight, Award, Crown, Users, Layers, ShieldCheck, 
+  TrendingUp, Pin, MessageSquare, Target, Info
 } from 'lucide-react';
 
 const QUICK_EMOJIS = ["👍", "🚀", "🔥", "💎", "👏", "👀"];
@@ -44,7 +45,7 @@ export default function StepCollaboration({
     {
       id: 1,
       sender: "system",
-      text: `[${mission.title}] 미션 룸에 입장했습니다. 주식, ETF, 연금·TDF 상품을 자유롭게 조합하여 3분 안에 완성하세요!`
+      text: `[토론 주제: ${mission.title}] 룸에 입장했습니다. 3분간 토론하여 최적의 3개 자산을 합의하세요!`
     },
     {
       id: 2,
@@ -52,8 +53,8 @@ export default function StepCollaboration({
       name: partnerName,
       avatar: partnerAvatar,
       text: isRealMatch
-        ? `반갑습니다 ${userProfile.nickname}님! 개별주뿐 아니라 ETF와 연금 상품도 섞어서 안정적인 자산배분 포트폴리오를 짜보죠. 첫 번째 자산 먼저 제안해주세요!`
-        : `반갑습니다 ${userProfile.nickname}님! ${partner.rankTitle}(수익률 ${partner.returnRate})입니다. 개별주 외에 월배당 ETF나 TDF 연금 상품까지 종합 고려하여 최적의 3종목을 함께 완성해봅시다!`
+        ? `반갑습니다 ${userProfile.nickname}님! 오늘의 토론 주제인 [${mission.title}]에 맞게 주식, ETF, 연금 상품을 자유롭게 조합해봅시다. 첫 번째 자산 제안해주세요!`
+        : `반갑습니다 ${userProfile.nickname}님! ${partner.rankTitle}(수익률 ${partner.returnRate})입니다. [${mission.title}] 목표를 달성할 핵심 자산을 함께 토론하여 완성해봅시다!`
     }
   ]);
   const [chatInput, setChatInput] = useState("");
@@ -166,14 +167,12 @@ export default function StepCollaboration({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 선택된 카테고리 기준 고유 섹터 리스트
   const currentCategoryStocks = selectedCategory === "ALL" 
     ? MOCK_STOCKS 
     : MOCK_STOCKS.filter(s => s.category === selectedCategory);
 
   const sectors = ["전체", ...new Set(currentCategoryStocks.map(s => s.sector.split('/')[0].trim()))];
 
-  // 필터링된 상품 목록
   const filteredStocks = currentCategoryStocks.filter(stock => {
     const isAlreadyInBasket = basket.some(b => b?.code === stock.code);
     if (isAlreadyInBasket) return false;
@@ -190,9 +189,7 @@ export default function StepCollaboration({
     return matchesSearch && matchesSector;
   });
 
-  // ==========================================
-  // 시뮬레이션 봇 역제안 (ETF / 연금 우선 추천)
-  // ==========================================
+  // 시뮬레이션 봇 역제안
   const triggerSimulationBotProposal = () => {
     setTimeout(() => {
       const candidateCode = partner.suggestStock || "402970";
@@ -212,7 +209,7 @@ export default function StepCollaboration({
           sender: "partner",
           name: partnerName,
           avatar: partnerAvatar,
-          text: `[${targetStock.name}] (${catLabel})을 2번째 자산으로 역제안합니다! 개별주 리스크를 헷지하고 복리 배당을 챙길 수 있는 전략적 선택입니다.`
+          text: `토론 주제에 맞춰 [${targetStock.name}] (${catLabel})을 2번째 자산으로 역제안합니다! 개별주 리스크를 헷지하고 복리 배당을 챙길 수 있는 전략적 선택입니다.`
         }
       ]);
 
@@ -225,9 +222,6 @@ export default function StepCollaboration({
     }, 1500);
   };
 
-  // ==========================================
-  // 사용자 자산 제안
-  // ==========================================
   const handleProposeStock = (stock) => {
     const emptyIndex = basket.findIndex(item => item === null);
     if (emptyIndex === -1) return;
@@ -265,7 +259,7 @@ export default function StepCollaboration({
             sender: "user",
             name: userProfile.nickname,
             avatar: userProfile.avatar,
-            text: `첫 번째 자산으로 [${stock.name}] (${catLabel}) 제안합니다!`
+            text: `토론 첫 번째 자산으로 [${stock.name}] (${catLabel}) 제안합니다!`
           }
         ]);
 
@@ -306,7 +300,7 @@ export default function StepCollaboration({
               sender: "partner",
               name: partnerName,
               avatar: partnerAvatar,
-              text: partner.replies?.onFinalAgree || "주식, ETF, 연금상품의 황금 배분이 완성되었습니다! AI 심판관에게 바로 넘겨보죠 🚀"
+              text: partner.replies?.onFinalAgree || "토론 주제에 부합하는 최고의 포트폴리오가 완성되었습니다! AI 심판관에게 바로 넘겨보죠 🚀"
             }
           ]);
         }, 900);
@@ -414,8 +408,8 @@ export default function StepCollaboration({
     } else {
       setTimeout(() => {
         const botReplies = [
-          "개별주의 변동성을 ETF와 연금으로 받쳐주는 전략적 시각이 매우 훌륭합니다!",
-          "연금계좌 비과세 혜택과 배당 재투자 관점에서도 완벽한 토론 포인트네요.",
+          `토론 주제 [${mission.title}]에 정확히 부합하는 전략적 시각입니다!`,
+          "개별주의 변동성을 ETF와 연금으로 받쳐주는 훌륭한 토론 포인트네요.",
           "우리 듀오 자산배분 케미가 환상적입니다. 알파독도 극찬할 것 같네요 🤝",
           "위험 자산과 안전 자산의 밸런스가 절묘하게 맞아떨어지고 있습니다!"
         ];
@@ -481,46 +475,85 @@ export default function StepCollaboration({
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
-      {/* 1. 상단 미션 및 타이머 바 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-gray-900/90 border border-gray-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold shrink-0">
-            🎯
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-cyan-400">공동 달성 미션</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-300">
+      {/* ======================================================== */}
+      {/* 1. [핵심 개선] 토론 주제 명확화 히어로 배너 (Discussion Topic) */}
+      {/* ======================================================== */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-900 via-gray-900/95 to-gray-950 border-2 border-emerald-500/50 p-5 sm:p-6 shadow-2xl shadow-emerald-500/10 animate-fade-in">
+        {/* 네온 배경 장식 */}
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* 좌측: 토론 주제 & 상세 목표 가이드 */}
+          <div className="flex-1 space-y-2">
+            {/* 상단 태그 라인 */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black text-xs uppercase tracking-wider">
+                <Target className="w-3.5 h-3.5" />
+                오늘의 듀오 토론 안건 (Discussion Topic)
+              </span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 font-semibold border border-gray-700">
                 난이도: {mission.difficulty}
               </span>
             </div>
-            <h2 className="text-base sm:text-lg font-black text-white">{mission.title}</h2>
-          </div>
-        </div>
 
-        {/* 3분 타이머 & 파트너 배지 */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-bold text-gray-300">
-            {isRealMatch ? (
-              <>
-                <Users className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{partnerName}님과 실시간 2인 협업 중</span>
-              </>
-            ) : (
-              <>
-                <Crown className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-                <span className="text-amber-300">TOP 0.1% {partnerName} 협업 중</span>
-              </>
-            )}
+            {/* 주제 대형 타이틀 */}
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {mission.title}
+            </h1>
+
+            {/* 서브타이틀 (토론 핵심 쟁점) */}
+            <div className="text-sm sm:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300">
+              ⚡ {mission.subtitle}
+            </div>
+
+            {/* 토론 가이드 설명 박스 */}
+            <div className="p-3 rounded-2xl bg-black/40 border border-gray-800 text-xs sm:text-sm text-gray-300 leading-relaxed max-w-3xl">
+              💡 <strong>토론 가이드:</strong> {mission.description}
+            </div>
+
+            {/* 추천 합의 섹터 & 자산군 태그 */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+              <span className="text-[11px] font-bold text-gray-400">권장 합의 자산군:</span>
+              {mission.targetSectors.map((sec, idx) => (
+                <span 
+                  key={idx} 
+                  className="text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-gray-800/90 text-cyan-300 border border-cyan-500/30"
+                >
+                  #{sec}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-bold text-lg ${
-            timeLeft <= 60 
-              ? 'bg-red-500/10 border-red-500/50 text-red-400 animate-pulse' 
-              : 'bg-gray-950 border-gray-800 text-emerald-400'
-          }`}>
-            <Clock className="w-5 h-5" />
-            <span>{formatTime(timeLeft)}</span>
+          {/* 우측: 3분 타이머 및 파트너 상태 박스 */}
+          <div className="flex md:flex-col items-center md:items-end justify-between gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-800">
+            {/* 파트너 뱃지 */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-bold text-gray-300">
+              <span className="text-lg">{partnerAvatar}</span>
+              <div className="text-left">
+                <div className="flex items-center gap-1">
+                  <span className="text-white">{partnerName}</span>
+                  {!isRealMatch && <Crown className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />}
+                </div>
+                <div className="text-[10px] text-emerald-400">
+                  {isRealMatch ? '● 실시간 파트너' : `수익률 ${partner.returnRate}`}
+                </div>
+              </div>
+            </div>
+
+            {/* 대형 카운트다운 타이머 */}
+            <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border font-mono font-black text-xl shadow-lg ${
+              timeLeft <= 60 
+                ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
+                : 'bg-gray-950/90 border-emerald-500/40 text-emerald-400'
+            }`}>
+              <Clock className="w-5 h-5 animate-spin-slow" />
+              <div>
+                <div className="text-[9px] uppercase tracking-wider text-gray-400 font-sans font-bold">토론 남은 시간</div>
+                <div>{formatTime(timeLeft)}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -529,12 +562,12 @@ export default function StepCollaboration({
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <span>공동 3종목 바스켓 ({basket.filter(Boolean).length}/3)</span>
-            <span className="text-[11px] text-gray-500 font-normal">· 주식, ETF, 연금상품 자유 조합 가능</span>
+            <span>공동 3종목 합의 바스켓 ({basket.filter(Boolean).length}/3)</span>
+            <span className="text-[11px] text-gray-500 font-normal">· 토론 주제에 맞는 주식, ETF, 연금상품을 슬롯에 채우세요</span>
           </span>
           {isBasketComplete && (
             <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 animate-pulse">
-              <Sparkles className="w-3.5 h-3.5" /> 3개 자산 포트폴리오 채결 완료!
+              <Sparkles className="w-3.5 h-3.5" /> 3개 자산 합의 완료! AI 심판관 호출 가능
             </span>
           )}
         </div>
@@ -587,7 +620,7 @@ export default function StepCollaboration({
                     <div className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center mx-auto mb-1 text-gray-400 font-bold">
                       {idx + 1}
                     </div>
-                    <span>{idx === 0 ? '첫 번째 자산 제안 대기' : idx === 1 ? '두 번째 자산 제안/협의' : '마지막 3번째 자산 대기'}</span>
+                    <span>{idx === 0 ? '첫 번째 자산 토론/제안' : idx === 1 ? '두 번째 자산 토론/협의' : '마지막 3번째 자산 대기'}</span>
                   </div>
                 )}
               </div>
@@ -596,7 +629,7 @@ export default function StepCollaboration({
         </div>
       </div>
 
-      {/* 3. 하단 레이아웃: 종목 탐색기 (자산군 탭 포함) & 실시간 채팅 */}
+      {/* 3. 하단 레이아웃: 종목 탐색기 (자산군 탭 포함) & 실시간 토론 채팅 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* 좌측 금융상품 탐색기 (7컬럼) */}
         <div className="lg:col-span-7 bg-gray-900/90 border border-gray-800 rounded-3xl p-4 sm:p-5 flex flex-col h-[540px]">
@@ -630,7 +663,7 @@ export default function StepCollaboration({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="자산명, 코드, 태그로 검색 (예: S&P500, TDF, 배당, 삼성전자)"
+                placeholder="토론할 자산명, 코드, 태그 검색 (예: S&P500, TDF, 방산, 삼성전자)"
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -703,10 +736,10 @@ export default function StepCollaboration({
           </div>
         </div>
 
-        {/* 우측 실시간 듀오 채팅 (5컬럼) */}
+        {/* 우측 실시간 듀오 토론 채팅 (5컬럼) */}
         <div className="lg:col-span-5 bg-gray-900/90 border border-gray-800 rounded-3xl p-4 flex flex-col h-[540px]">
           {/* 헤더 */}
-          <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-3">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-2">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{partnerAvatar}</span>
               <div>
@@ -729,8 +762,15 @@ export default function StepCollaboration({
             </div>
 
             <span className="text-[10px] px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700 font-semibold">
-              {isRealMatch ? '실시간 2인 룸' : 'AI 챌린저'}
+              {isRealMatch ? '실시간 2인 토론' : 'AI 챌린저'}
             </span>
+          </div>
+
+          {/* [고정 핀 배너] 채팅창 상단에 항상 보이는 현재 토론 안건 */}
+          <div className="mb-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5 text-xs">
+            <Pin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span className="text-[10px] text-gray-400 font-bold shrink-0">토론 안건:</span>
+            <span className="font-bold text-emerald-300 truncate">{mission.title}</span>
           </div>
 
           {/* 채팅 말풍선 리스트 */}
@@ -790,7 +830,7 @@ export default function StepCollaboration({
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="주식/ETF/연금 분산투자 의견 조율하기..."
+              placeholder="토론 주제에 대해 파트너와 의견 조율하기..."
               className="flex-1 px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
             />
             <button
@@ -811,7 +851,7 @@ export default function StepCollaboration({
             className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-black text-lg flex items-center justify-center gap-2 shadow-2xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
           >
             <Sparkles className="w-6 h-6" />
-            <span>AI 심판관 알파독(AlphaDog) 호출하기 (주식·ETF·연금 통합 심사)</span>
+            <span>AI 심판관 알파독(AlphaDog) 호출하기 (토론 합의안 최종 채점)</span>
             <ChevronRight className="w-6 h-6" />
           </button>
         </div>

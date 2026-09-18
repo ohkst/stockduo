@@ -158,8 +158,22 @@ export default function StepReport({
           </div>
         </div>
 
+        {/* 완료된 토론 안건 박스 */}
+        <div className="my-4 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🎯</span>
+            <div>
+              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">완료된 듀오 토론 안건 (Discussion Topic)</div>
+              <div className="text-sm font-black text-white">{mission?.title}</div>
+            </div>
+          </div>
+          <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30 shrink-0">
+            합의 성공
+          </span>
+        </div>
+
         {/* 수석 심판관 알파독 종합 팩폭 심사평 */}
-        <div className="my-6 p-4 sm:p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 relative z-10">
+        <div className="my-5 p-4 sm:p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 relative z-10">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">🐕‍🦺</span>
             <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">

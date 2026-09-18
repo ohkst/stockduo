@@ -283,28 +283,31 @@ export default function StepMatching({ userProfile, socket, onMatchComplete, onS
             </div>
           </div>
 
-          {/* 배정된 미션 카드 */}
-          <div className="p-5 rounded-2xl bg-gradient-to-b from-gray-900 to-gray-950 border border-cyan-500/30 text-left">
+          {/* 배정된 토론 주제 카드 */}
+          <div className="p-5 rounded-2xl bg-gradient-to-b from-gray-900 to-gray-950 border-2 border-emerald-500/50 text-left shadow-xl shadow-emerald-500/10">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 {getMissionIcon(selectedMission.icon)}
-                <span className="text-xs font-bold text-cyan-400">배정된 공동 미션</span>
+                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">오늘의 듀오 토론 안건</span>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30">
                 난이도: {selectedMission.difficulty}
               </span>
             </div>
-            <h3 className="text-lg font-extrabold text-white mb-1">
+            <h3 className="text-xl font-black text-white mb-1">
               {selectedMission.title}
             </h3>
-            <p className="text-xs text-gray-300 mb-2">
+            <p className="text-xs font-bold text-emerald-300 mb-2">
               {selectedMission.subtitle}
             </p>
+            <div className="text-[11px] text-gray-300 mb-3 bg-black/40 p-2.5 rounded-xl border border-gray-800 leading-relaxed">
+              {selectedMission.description}
+            </div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-gray-400">권장 섹터:</span>
+              <span className="text-[10px] text-gray-400 font-bold">권장 토론 자산군:</span>
               {selectedMission.targetSectors.map((sec, idx) => (
-                <span key={idx} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
-                  {sec}
+                <span key={idx} className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-800 text-cyan-300 border border-gray-700">
+                  #{sec}
                 </span>
               ))}
             </div>
