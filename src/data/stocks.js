@@ -204,3 +204,25 @@ export const BOT_PARTNERS = [
     }
   }
 ];
+
+// 실시간 시세 API 연동 헬퍼
+export async function updateRealTimeStockPrices() {
+  try {
+    const res = await fetch('/api/stocks');
+    if (!res.ok) return MOCK_STOCKS;
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      json.data.forEach(item => {
+        const found = MOCK_STOCKS.find(s => s.code === item.code);
+        if (found) {
+          if (item.price) found.price = item.price;
+          if (item.change !== undefined) found.change = item.change;
+          if (item.marketCap) found.marketCap = item.marketCap;
+        }
+      });
+    }
+  } catch (err) {
+    console.warn("Could not fetch real-time stocks, using default mock prices:", err);
+  }
+  return MOCK_STOCKS;
+}

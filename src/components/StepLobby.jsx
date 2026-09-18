@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dice5, Sparkles, UserCheck, ShieldCheck, ArrowRight, Bot, Target, Crown } from 'lucide-react';
+import { Dice5, Sparkles, UserCheck, ArrowRight, Bot, Users, Clock, Crown } from 'lucide-react';
 
 const RANDOM_NICKNAMES = [
   "불나방_개미",
@@ -32,14 +32,25 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
     setNickname(`${pick}_${randomSuffix}`);
   };
 
-  const handleStart = (e) => {
+  const handleStartReal = (e) => {
     e.preventDefault();
     if (!nickname.trim()) return;
     onStartMatching({
       nickname: nickname.trim(),
       avatar,
       style: INVESTMENT_STYLES.find(s => s.id === style) || INVESTMENT_STYLES[0],
-      matchHighRanker: true
+      mode: 'real' // 실제 2인 매칭 (최대 10분 대기)
+    });
+  };
+
+  const handleStartSimulation = (e) => {
+    e.preventDefault();
+    if (!nickname.trim()) return;
+    onStartMatching({
+      nickname: nickname.trim(),
+      avatar,
+      style: INVESTMENT_STYLES.find(s => s.id === style) || INVESTMENT_STYLES[0],
+      mode: 'simulation' // 단독 시뮬레이션 즉시 체험
     });
   };
 
@@ -58,12 +69,12 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
           </span>
         </h1>
         <p className="text-gray-400 text-sm sm:text-base max-w-lg mx-auto leading-relaxed">
-          직급도, 자산도 가린 완전 익명 상태에서 3분간 합의하여 미션 포트폴리오를 완성하고 AI 수석 심판관의 평가를 받아보세요!
+          직급도, 자산도 가린 완전 익명 상태에서 3분간 실시간으로 합의하여 미션 포트폴리오를 완성해보세요!
         </p>
       </div>
 
-      {/* 설정 카드 */}
-      <form onSubmit={handleStart} className="bg-gray-900/90 border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+      {/* 설정 폼 카드 */}
+      <div className="bg-gray-900/90 border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         {/* 아바타 선택 */}
         <div>
           <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">
@@ -137,35 +148,49 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
           </div>
         </div>
 
-        {/* 👑 최상급 랭커 우선 매칭 특별 알림 */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-yellow-950/30 to-gray-950 border border-amber-500/40 flex items-start gap-3 shadow-lg shadow-amber-500/10">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 text-black shrink-0 shadow-md">
-            <Crown className="w-5 h-5 fill-black" />
-          </div>
-          <div className="text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-black text-amber-200 flex items-center gap-1.5">
-                <span>상대방 매칭 등급 : TOP 0.1% 챌린저 랭커 확정</span>
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black border border-amber-400/40">
-                CHALLENGER
-              </span>
+        {/* 진입 버튼 2종류 (실제 매칭 vs AI 시뮬레이션) */}
+        <div className="space-y-3 pt-2">
+          {/* 1. 실제 유저 실시간 매칭 (정상 진입) */}
+          <button
+            type="button"
+            onClick={handleStartReal}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-black text-base flex items-center justify-between shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all group"
+          >
+            <div className="flex items-center gap-2.5 text-left">
+              <div className="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-black" />
+              </div>
+              <div>
+                <div className="font-black text-base leading-tight">실제 유저와 실시간 듀오 매칭</div>
+                <div className="text-xs font-semibold text-black/80 flex items-center gap-1 mt-0.5">
+                  <Clock className="w-3.5 h-3.5" /> 최대 10분 대기 · 2인 실시간 동기화
+                </div>
+              </div>
             </div>
-            <p className="text-amber-300/80 leading-relaxed">
-              시뮬레이션 시작 시 <strong>누적 수익률 +284%</strong>를 기록한 전국 최상위 천상계 유저(수익률 엠블럼 보유)가 듀오 파트너로 자동 매칭됩니다.
-            </p>
-          </div>
-        </div>
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
 
-        {/* 매칭 시작 버튼 */}
-        <button
-          type="submit"
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
-        >
-          <span>최상급 랭커 파트너 탐색 & 미션 룰렛 시작</span>
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </form>
+          {/* 2. AI 챌린저 시뮬레이션 즉시 체험 */}
+          <button
+            type="button"
+            onClick={handleStartSimulation}
+            className="w-full py-3.5 px-6 rounded-2xl bg-gray-950 hover:bg-gray-800 border border-amber-500/50 hover:border-amber-400 text-slate-200 text-sm font-bold flex items-center justify-between transition group"
+          >
+            <div className="flex items-center gap-2.5 text-left">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-300">
+                <Crown className="w-5 h-5 fill-amber-300" />
+              </div>
+              <div>
+                <div className="font-extrabold text-amber-200">AI 챌린저 시뮬레이션 즉시 체험</div>
+                <div className="text-[11px] text-gray-400">대기 없이 상위 0.1% 챌린저 봇과 즉시 1:1 협업</div>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-amber-400 group-hover:translate-x-1 transition-transform">
+              체험하기 →
+            </span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
