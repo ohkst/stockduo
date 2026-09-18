@@ -139,6 +139,27 @@ export default function App() {
     }
   };
 
+  // 협업 룸 탈주 및 로비 복귀
+  const handleLeaveRoom = () => {
+    if (socket && roomId) {
+      socket.emit('leave_room', { roomId, userProfile });
+    }
+    setCollaboratedStocks([]);
+    setAiReport(null);
+    setPartner(null);
+    setRealRoomId(null);
+    setIsRealMatch(false);
+    setCurrentStep(STEPS.LOBBY);
+  };
+
+  // 파트너 탈주 시 AI 챌린저 봇으로 즉시 교체하여 계속 진행
+  const handleReplacePartnerWithBot = () => {
+    const challengerBot = BOT_PARTNERS[0];
+    setPartner(challengerBot);
+    setIsRealMatch(false);
+    setRealRoomId(null);
+  };
+
   // 리셋 및 새 매칭
   const handleRestart = () => {
     if (socket && roomId) {
@@ -148,6 +169,7 @@ export default function App() {
     setAiReport(null);
     setPartner(null);
     setRealRoomId(null);
+    setIsRealMatch(false);
     setCurrentStep(STEPS.LOBBY);
   };
 
@@ -190,6 +212,8 @@ export default function App() {
             roomId={roomId}
             socket={socket}
             onCompleteCollaboration={handleCompleteCollaboration}
+            onLeaveRoom={handleLeaveRoom}
+            onReplacePartnerWithBot={handleReplacePartnerWithBot}
           />
         )}
 

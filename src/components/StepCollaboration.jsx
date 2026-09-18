@@ -4,7 +4,7 @@ import RankEmblem from './RankEmblem';
 import { 
   Clock, Search, Check, Send, Sparkles, AlertCircle, Bot, ThumbsUp, Flame, 
   Rocket, X, HelpCircle, ChevronRight, Award, Crown, Users, Layers, ShieldCheck, 
-  TrendingUp, Pin, MessageSquare, Target, Info
+  TrendingUp, Pin, MessageSquare, Target, Info, LogOut, PlusCircle, AlertTriangle
 } from 'lucide-react';
 
 const QUICK_EMOJIS = ["👍", "🚀", "🔥", "💎", "👏", "👀"];
@@ -24,12 +24,14 @@ export default function StepCollaboration({
   isRealMatch, 
   roomId, 
   socket, 
-  onCompleteCollaboration 
+  onCompleteCollaboration,
+  onLeaveRoom,
+  onReplacePartnerWithBot
 }) {
   // 3개 슬롯 바스켓 상태
   const [basket, setBasket] = useState([null, null, null]);
 
-  // 3분 타이머 (180초)
+  // 토론 타이머 (초 단위, 기본 180초)
   const [timeLeft, setTimeLeft] = useState(180);
 
   // 자산군 탭 & 검색 및 섹터 필터
@@ -39,6 +41,13 @@ export default function StepCollaboration({
 
   const partnerName = partner.nickname || partner.name;
   const partnerAvatar = partner.avatar || "👤";
+
+  // 모달 상태들
+  const [proposalModal, setProposalModal] = useState(null); // 종목 제안 모달
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false); // 탈주 확인 모달
+  const [partnerLeftModal, setPartnerLeftModal] = useState(null); // 파트너 탈주 알림 모달
+  const [extensionRequestModal, setExtensionRequestModal] = useState(null); // 상대방의 시간연장 요청 팝업
+  const [isRequestingExtension, setIsRequestingExtension] = useState(false); // 연장 요청 중 상태
 
   // 채팅 내역
   const [messages, setMessages] = useState([
@@ -60,15 +69,12 @@ export default function StepCollaboration({
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef(null);
 
-  // 제안 팝업 모달 상태
-  const [proposalModal, setProposalModal] = useState(null);
-
   // 자동 스크롤
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 3분 카운트다운 타이머
+  // 카운트다운 타이머
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => {
@@ -83,6 +89,7 @@ export default function StepCollaboration({
   useEffect(() => {
     if (!isRealMatch || !socket) return;
 
+    // 1. 상대방의 종목 제안
     const handleStockProposed = ({ slotIndex, stock, proposer }) => {
       const catLabel = stock.category === 'ETF' ? 'ETF' : stock.category === 'PENSION' ? '연금상품' : '주식';
       setProposalModal({
@@ -103,6 +110,7 @@ export default function StepCollaboration({
       ]);
     };
 
+    // 2. 종목 승인
     const handleStockAccepted = ({ slotIndex, stock, approver }) => {
       setBasket(prev => {
         const next = [...prev];
@@ -120,6 +128,7 @@ export default function StepCollaboration({
       ]);
     };
 
+    // 3. 종목 거절
     const handleStockRejected = ({ stock, rejector }) => {
       setProposalModal(null);
       setMessages(prev => [
@@ -132,16 +141,60 @@ export default function StepCollaboration({
       ]);
     };
 
+    // 4. 실시간 채팅
     const handleReceiveChat = (msg) => {
       setMessages(prev => [...prev, msg]);
     };
 
+    // 5. AI 평가 전환
     const handleEvaluationStarted = ({ basket: finalBasket }) => {
       onCompleteCollaboration(finalBasket);
     };
 
-    const handlePartnerDisconnected = () => {
-      alert("상대방의 연결이 끊어졌습니다.");
+    // 6. [신규] 상대방 탈주 수신
+    const handlePartnerLeft = ({ userProfile: leaverProfile, reason }) => {
+      const leaverName = leaverProfile?.nickname || partnerName;
+      setPartnerLeftModal({
+        leaverName,
+        reason: reason === 'voluntary' 
+          ? `${leaverName}님이 토론 도중 협업 룸을 탈주(퇴장)했습니다.` 
+          : `${leaverName}님과의 네트워크 연결이 종료되었습니다.`
+      });
+    };
+
+    // 7. [신규] 상대방의 시간 연장 요청 수신
+    const handleTimeExtensionRequested = ({ requester, extensionSeconds }) => {
+      setExtensionRequestModal({
+        requester,
+        extensionSeconds
+      });
+    };
+
+    // 8. [신규] 시간 연장 합의 완료 수신
+    const handleTimeExtended = ({ extensionSeconds, acceptedBy }) => {
+      setTimeLeft(prev => prev + extensionSeconds);
+      setIsRequestingExtension(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          sender: "system",
+          text: `⏰ 양측 합의로 토론 시간이 ${extensionSeconds}초 연장되었습니다! (충분히 토론 후 결정하세요)`
+        }
+      ]);
+    };
+
+    // 9. [신규] 시간 연장 거절 수신
+    const handleTimeExtensionRejected = () => {
+      setIsRequestingExtension(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          sender: "system",
+          text: `⚠️ 파트너가 시간 연장을 정중히 사양하여 기존 타이머대로 진행됩니다.`
+        }
+      ]);
     };
 
     socket.on('stock_proposed', handleStockProposed);
@@ -149,7 +202,10 @@ export default function StepCollaboration({
     socket.on('stock_rejected', handleStockRejected);
     socket.on('receive_chat', handleReceiveChat);
     socket.on('evaluation_started', handleEvaluationStarted);
-    socket.on('partner_disconnected', handlePartnerDisconnected);
+    socket.on('partner_left', handlePartnerLeft);
+    socket.on('time_extension_requested', handleTimeExtensionRequested);
+    socket.on('time_extended', handleTimeExtended);
+    socket.on('time_extension_rejected', handleTimeExtensionRejected);
 
     return () => {
       socket.off('stock_proposed', handleStockProposed);
@@ -157,9 +213,12 @@ export default function StepCollaboration({
       socket.off('stock_rejected', handleStockRejected);
       socket.off('receive_chat', handleReceiveChat);
       socket.off('evaluation_started', handleEvaluationStarted);
-      socket.off('partner_disconnected', handlePartnerDisconnected);
+      socket.off('partner_left', handlePartnerLeft);
+      socket.off('time_extension_requested', handleTimeExtensionRequested);
+      socket.off('time_extended', handleTimeExtended);
+      socket.off('time_extension_rejected', handleTimeExtensionRejected);
     };
-  }, [isRealMatch, socket, onCompleteCollaboration]);
+  }, [isRealMatch, socket, partnerName, onCompleteCollaboration]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -188,6 +247,139 @@ export default function StepCollaboration({
 
     return matchesSearch && matchesSector;
   });
+
+  // ==========================================
+  // 시간 연장 요청 핸들러 (합의제)
+  // ==========================================
+  const handleRequestTimeExtension = () => {
+    if (isRequestingExtension) return;
+
+    if (isRealMatch && socket) {
+      setIsRequestingExtension(true);
+      socket.emit('request_time_extension', {
+        roomId,
+        extensionSeconds: 60,
+        userProfile
+      });
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          sender: "system",
+          text: `⏳ 파트너에게 토론 시간 1분(+60초) 연장을 제안했습니다. 파트너 승인 대기 중...`
+        }
+      ]);
+    } else {
+      // AI 시뮬레이션 모드에서는 봇이 즉시 동의
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          sender: "user",
+          name: userProfile.nickname,
+          avatar: userProfile.avatar,
+          text: `더 심도 있는 토론을 위해 1분 연장 요청합니다!`
+        }
+      ]);
+
+      setTimeout(() => {
+        setTimeLeft(prev => prev + 60);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: "partner",
+            name: partnerName,
+            avatar: partnerAvatar,
+            text: `좋은 생각입니다! 신중한 포트폴리오를 위해 1분 연장에 적극 찬성합니다 👍`
+          },
+          {
+            id: Date.now() + 2,
+            sender: "system",
+            text: `⏰ 양측 합의로 토론 시간이 1분(+60초) 연장되었습니다!`
+          }
+        ]);
+      }, 700);
+    }
+  };
+
+  // 상대방의 연장 요청 수락
+  const handleAcceptExtension = () => {
+    if (!extensionRequestModal) return;
+    const { extensionSeconds = 60 } = extensionRequestModal;
+
+    if (isRealMatch && socket) {
+      socket.emit('accept_time_extension', {
+        roomId,
+        extensionSeconds,
+        userProfile
+      });
+    }
+    setExtensionRequestModal(null);
+  };
+
+  // 상대방의 연장 요청 거절
+  const handleRejectExtension = () => {
+    if (!extensionRequestModal) return;
+
+    if (isRealMatch && socket) {
+      socket.emit('reject_time_extension', {
+        roomId,
+        userProfile
+      });
+    }
+    setExtensionRequestModal(null);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: "system",
+        text: `시간 연장 요청을 거절하였습니다.`
+      }
+    ]);
+  };
+
+  // ==========================================
+  // 중간 탈주 핸들러
+  // ==========================================
+  const handleConfirmLeave = () => {
+    setLeaveConfirmOpen(false);
+    if (onLeaveRoom) {
+      onLeaveRoom();
+    }
+  };
+
+  // 파트너 탈주 시 AI 챌린저 봇으로 교체하여 계속 진행
+  const handleContinueWithBot = () => {
+    setPartnerLeftModal(null);
+    if (onReplacePartnerWithBot) {
+      onReplacePartnerWithBot();
+    }
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: "system",
+        text: `👑 상위 0.1% AI 챌린저가 파트너를 대체하여 협업 룸에 긴급 투입되었습니다!`
+      },
+      {
+        id: Date.now() + 1,
+        sender: "partner",
+        name: "알파사냥꾼 (AI 챌린저)",
+        avatar: "👑",
+        text: `파트너 탈주로 긴급 등판했습니다! 지금까지 논의된 자산들을 이어받아 최고의 포트폴리오로 완성해봅시다.`
+      }
+    ]);
+  };
+
+  // 파트너 탈주 시 로비로 퇴장
+  const handleLeaveAfterPartner = () => {
+    setPartnerLeftModal(null);
+    if (onLeaveRoom) {
+      onLeaveRoom();
+    }
+  };
 
   // 시뮬레이션 봇 역제안
   const triggerSimulationBotProposal = () => {
@@ -476,7 +668,7 @@ export default function StepCollaboration({
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
       {/* ======================================================== */}
-      {/* 1. [핵심 개선] 토론 주제 명확화 히어로 배너 (Discussion Topic) */}
+      {/* 1. 토론 주제 명확화 히어로 배너 (탈주 버튼 & 시간 연장 버튼 포함) */}
       {/* ======================================================== */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-900 via-gray-900/95 to-gray-950 border-2 border-emerald-500/50 p-5 sm:p-6 shadow-2xl shadow-emerald-500/10 animate-fade-in">
         {/* 네온 배경 장식 */}
@@ -486,7 +678,6 @@ export default function StepCollaboration({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* 좌측: 토론 주제 & 상세 목표 가이드 */}
           <div className="flex-1 space-y-2">
-            {/* 상단 태그 라인 */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black text-xs uppercase tracking-wider">
                 <Target className="w-3.5 h-3.5" />
@@ -497,22 +688,18 @@ export default function StepCollaboration({
               </span>
             </div>
 
-            {/* 주제 대형 타이틀 */}
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {mission.title}
             </h1>
 
-            {/* 서브타이틀 (토론 핵심 쟁점) */}
             <div className="text-sm sm:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300">
               ⚡ {mission.subtitle}
             </div>
 
-            {/* 토론 가이드 설명 박스 */}
             <div className="p-3 rounded-2xl bg-black/40 border border-gray-800 text-xs sm:text-sm text-gray-300 leading-relaxed max-w-3xl">
               💡 <strong>토론 가이드:</strong> {mission.description}
             </div>
 
-            {/* 추천 합의 섹터 & 자산군 태그 */}
             <div className="flex items-center gap-1.5 flex-wrap pt-1">
               <span className="text-[11px] font-bold text-gray-400">권장 합의 자산군:</span>
               {mission.targetSectors.map((sec, idx) => (
@@ -526,33 +713,60 @@ export default function StepCollaboration({
             </div>
           </div>
 
-          {/* 우측: 3분 타이머 및 파트너 상태 박스 */}
+          {/* 우측: 타이머, 시간 연장 버튼, 파트너 상태, 탈주 버튼 */}
           <div className="flex md:flex-col items-center md:items-end justify-between gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-800">
-            {/* 파트너 뱃지 */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-bold text-gray-300">
-              <span className="text-lg">{partnerAvatar}</span>
-              <div className="text-left">
-                <div className="flex items-center gap-1">
-                  <span className="text-white">{partnerName}</span>
-                  {!isRealMatch && <Crown className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />}
-                </div>
-                <div className="text-[10px] text-emerald-400">
-                  {isRealMatch ? '● 실시간 파트너' : `수익률 ${partner.returnRate}`}
+            {/* 파트너 뱃지 및 탈주(방 나가기) 버튼 */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-bold text-gray-300">
+                <span className="text-lg">{partnerAvatar}</span>
+                <div className="text-left">
+                  <div className="flex items-center gap-1">
+                    <span className="text-white">{partnerName}</span>
+                    {!isRealMatch && <Crown className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />}
+                  </div>
+                  <div className="text-[10px] text-emerald-400">
+                    {isRealMatch ? '● 실시간 파트너' : `수익률 ${partner.returnRate}`}
+                  </div>
                 </div>
               </div>
+
+              {/* [탈주 버튼] */}
+              <button
+                type="button"
+                onClick={() => setLeaveConfirmOpen(true)}
+                title="토론 포기하고 방 나가기"
+                className="px-2.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-bold transition flex items-center gap-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">탈주</span>
+              </button>
             </div>
 
-            {/* 대형 카운트다운 타이머 */}
-            <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border font-mono font-black text-xl shadow-lg ${
-              timeLeft <= 60 
-                ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
-                : 'bg-gray-950/90 border-emerald-500/40 text-emerald-400'
-            }`}>
-              <Clock className="w-5 h-5 animate-spin-slow" />
-              <div>
-                <div className="text-[9px] uppercase tracking-wider text-gray-400 font-sans font-bold">토론 남은 시간</div>
-                <div>{formatTime(timeLeft)}</div>
+            {/* 타이머 & 시간 연장 버튼 그룹 */}
+            <div className="flex items-center gap-2">
+              {/* 대형 카운트다운 타이머 */}
+              <div className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl border font-mono font-black text-xl shadow-lg ${
+                timeLeft <= 60 
+                  ? 'bg-red-500/20 border-red-500 text-red-400 animate-pulse' 
+                  : 'bg-gray-950/90 border-emerald-500/40 text-emerald-400'
+              }`}>
+                <Clock className="w-5 h-5 animate-spin-slow" />
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-gray-400 font-sans font-bold">남은 시간</div>
+                  <div>{formatTime(timeLeft)}</div>
+                </div>
               </div>
+
+              {/* [합의 시간 연장 버튼 (+60초)] */}
+              <button
+                type="button"
+                onClick={handleRequestTimeExtension}
+                disabled={isRequestingExtension}
+                className="px-3 py-2.5 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 text-xs font-extrabold flex items-center gap-1.5 transition shadow-lg shadow-cyan-500/10 disabled:opacity-50"
+              >
+                <PlusCircle className="w-4 h-4 text-cyan-400" />
+                <span>+1분 연장</span>
+              </button>
             </div>
           </div>
         </div>
@@ -878,7 +1092,6 @@ export default function StepCollaboration({
               </div>
             </div>
 
-            {/* 추천 상품 카드 */}
             <div className="p-4 rounded-2xl bg-gray-950 border border-gray-800 mb-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-mono text-gray-400">{proposalModal.stock.code}</span>
@@ -900,7 +1113,6 @@ export default function StepCollaboration({
               </div>
             </div>
 
-            {/* 승인 / 거절 버튼 */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -915,6 +1127,111 @@ export default function StepCollaboration({
                 className="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-black text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
               >
                 <Check className="w-4 h-4" /> 제안 승인하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. [신규] 본인 탈주 확인 모달 */}
+      {leaveConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-sm bg-gray-900 border-2 border-red-500/80 rounded-3xl p-6 shadow-2xl text-slate-100 animate-scale-up text-center">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center mx-auto mb-3 text-red-400">
+              <LogOut className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-black text-white mb-2">정말 토론을 포기하고 탈주하시겠습니까?</h3>
+            <p className="text-xs text-gray-400 leading-relaxed mb-5">
+              방을 나가면 지금까지 합의 중이던 바스켓이 취소되고, 파트너와의 실시간 협업 세션이 즉시 종료됩니다.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setLeaveConfirmOpen(false)}
+                className="py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition"
+              >
+                계속 토론하기
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLeave}
+                className="py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs transition shadow-lg shadow-red-500/30"
+              >
+                탈주 (방 나가기)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. [신규] 파트너 탈주 알림 모달 */}
+      {partnerLeftModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md bg-gray-900 border-2 border-amber-500/80 rounded-3xl p-6 shadow-2xl text-slate-100 animate-scale-up text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto mb-3 text-amber-400 animate-bounce">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-black border border-amber-500/30">
+              PARTNER DISCONNECTED
+            </span>
+            <h3 className="text-xl font-black text-white mt-2 mb-2">
+              파트너가 토론 도중 탈주했습니다!
+            </h3>
+            <p className="text-xs text-gray-300 leading-relaxed mb-5">
+              {partnerLeftModal.reason} <br />
+              지금까지 채운 바스켓을 유지한 채 <strong>상위 0.1% AI 챌린저 봇</strong>으로 파트너를 즉시 교체하여 계속 진행하시겠습니까?
+            </p>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={handleContinueWithBot}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5"
+              >
+                <Crown className="w-4 h-4 fill-black" />
+                <span>AI 챌린저로 즉시 교체하여 계속 진행하기</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLeaveAfterPartner}
+                className="w-full py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition"
+              >
+                로비로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. [신규] 상대방의 시간 연장 제안 모달 (합의제) */}
+      {extensionRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-sm bg-gray-900 border-2 border-cyan-500/80 rounded-3xl p-6 shadow-2xl text-slate-100 animate-scale-up text-center">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center mx-auto mb-3 text-cyan-400 animate-pulse">
+              <Clock className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-black border border-cyan-500/30">
+              TIME EXTENSION REQUEST
+            </span>
+            <h3 className="text-lg font-black text-white mt-2 mb-1">
+              토론 시간 1분 연장 제안!
+            </h3>
+            <p className="text-xs text-gray-300 leading-relaxed mb-5">
+              <strong>{extensionRequestModal.requester?.nickname || partnerName}</strong>님이 신중한 포트폴리오 구성을 위해 토론 시간을 <strong>+1분(60초)</strong> 연장하자고 요청했습니다.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleRejectExtension}
+                className="py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold text-xs transition"
+              >
+                거절 (기존대로)
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptExtension}
+                className="py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-black font-black text-xs transition shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> 동의 (+1분 연장)
               </button>
             </div>
           </div>

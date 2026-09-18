@@ -284,7 +284,44 @@ io.on('connection', (socket) => {
     io.in(roomId).emit('evaluation_started', { basket });
   });
 
-  // 8. 연결 종료 처리
+  // 8. 중간 탈주 / 방 나가기
+  socket.on('leave_room', ({ roomId, userProfile }) => {
+    console.log(`[LEAVE ROOM] ${userProfile?.nickname || socket.id} left room: ${roomId}`);
+    socket.to(roomId).emit('partner_left', {
+      userProfile,
+      reason: 'voluntary' // 자발적 탈주
+    });
+    activeRooms.delete(roomId);
+    socket.leave(roomId);
+    broadcastQueueStats();
+  });
+
+  // 9. 시간 연장 요청 (상대방 동의 필요)
+  socket.on('request_time_extension', ({ roomId, extensionSeconds = 60, userProfile }) => {
+    console.log(`[TIME EXTENSION REQ] ${userProfile?.nickname} requested +${extensionSeconds}s in room ${roomId}`);
+    socket.to(roomId).emit('time_extension_requested', {
+      requester: userProfile,
+      extensionSeconds
+    });
+  });
+
+  // 10. 시간 연장 수락 (양측 합의 완료)
+  socket.on('accept_time_extension', ({ roomId, extensionSeconds = 60, userProfile }) => {
+    console.log(`[TIME EXTENSION ACCEPTED] Room ${roomId} extended by ${extensionSeconds}s`);
+    io.in(roomId).emit('time_extended', {
+      extensionSeconds,
+      acceptedBy: userProfile
+    });
+  });
+
+  // 11. 시간 연장 거절
+  socket.on('reject_time_extension', ({ roomId, userProfile }) => {
+    socket.to(roomId).emit('time_extension_rejected', {
+      rejectedBy: userProfile
+    });
+  });
+
+  // 12. 연결 종료 처리
   socket.on('disconnect', () => {
     // 대기열에서 제거
     const idx = waitingQueue.findIndex(item => item.socketId === socket.id);
@@ -292,11 +329,13 @@ io.on('connection', (socket) => {
       waitingQueue.splice(idx, 1);
     }
 
-    // 속한 방이 있다면 상대방에게 연결 끊김 알림
+    // 속한 방이 있다면 상대방에게 파트너 퇴장 알림
     for (const [roomId, room] of activeRooms.entries()) {
       const isPlayer = room.players.some(p => p.socketId === socket.id);
       if (isPlayer) {
-        socket.to(roomId).emit('partner_disconnected');
+        socket.to(roomId).emit('partner_left', {
+          reason: 'disconnected'
+        });
         activeRooms.delete(roomId);
         break;
       }
