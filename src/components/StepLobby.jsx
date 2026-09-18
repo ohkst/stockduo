@@ -21,10 +21,18 @@ const INVESTMENT_STYLES = [
   { id: "hedge", label: "🌐 거시경제 헷지형", desc: "고환율·고유가 대비 분산 포트폴리오" }
 ];
 
-export default function StepLobby({ onStartMatching, defaultNickname, defaultAvatar, defaultStyle }) {
+export default function StepLobby({ 
+  onStartMatching, 
+  defaultNickname, 
+  defaultAvatar, 
+  defaultStyle,
+  queueStats = { waitingCount: 0, onlineUsersCount: 1 }
+}) {
   const [nickname, setNickname] = useState(defaultNickname || "불나방_개미");
   const [avatar, setAvatar] = useState(defaultAvatar || "🦁");
   const [style, setStyle] = useState(defaultStyle || "beast");
+
+  const waitingCount = queueStats.waitingCount || 0;
 
   const rollRandomNickname = () => {
     const pick = RANDOM_NICKNAMES[Math.floor(Math.random() * RANDOM_NICKNAMES.length)];
@@ -161,9 +169,18 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
                 <Users className="w-5 h-5 text-black" />
               </div>
               <div>
-                <div className="font-black text-base leading-tight">실제 유저와 실시간 듀오 매칭</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-base leading-tight">실제 유저와 실시간 듀오 매칭</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/40 text-emerald-300 font-extrabold border border-black/30">
+                    실제 대기 {waitingCount}명
+                  </span>
+                </div>
                 <div className="text-xs font-semibold text-black/80 flex items-center gap-1 mt-0.5">
-                  <Clock className="w-3.5 h-3.5" /> 최대 10분 대기 · 2인 실시간 동기화
+                  <Clock className="w-3.5 h-3.5" /> 
+                  {waitingCount === 0 
+                    ? '현재 대기 0명 · 입장 시 대기열 1번으로 등록 (최대 10분 대기)' 
+                    : `🔥 현재 ${waitingCount}명 대기 중! 입장 시 즉시 1:1 매칭!`
+                  }
                 </div>
               </div>
             </div>

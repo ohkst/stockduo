@@ -6,7 +6,13 @@ import {
   Crown, Clock, Users, Bot, AlertTriangle 
 } from 'lucide-react';
 
-export default function StepMatching({ userProfile, socket, onMatchComplete, onSwitchToSimulation }) {
+export default function StepMatching({ 
+  userProfile, 
+  socket, 
+  queueStats = { waitingCount: 0, onlineUsersCount: 1 },
+  onMatchComplete, 
+  onSwitchToSimulation 
+}) {
   const isRealMode = userProfile.mode === 'real';
 
   // 상태: 'searching' -> 'matched' -> 'roulette' -> 'ready'
@@ -151,20 +157,36 @@ export default function StepMatching({ userProfile, socket, onMatchComplete, onS
                   실제 파트너를 찾고 있습니다...
                 </h2>
                 
-                {/* 10분 타이머 */}
-                <div className="my-3 p-3 rounded-2xl bg-gray-900/90 border border-gray-800 flex items-center justify-center gap-3">
-                  <Clock className="w-5 h-5 text-cyan-400 animate-pulse" />
-                  <div className="text-left">
-                    <div className="text-[10px] text-gray-400">매칭 대기 제한 시간 (최대 10분)</div>
-                    <div className="text-xl font-mono font-black text-white">
-                      {formatWaitTime(waitSeconds)}
+                {/* 실시간 실제 대기 인원수 및 10분 타이머 */}
+                <div className="my-3 grid grid-cols-2 gap-2 max-w-sm mx-auto">
+                  <div className="p-3 rounded-2xl bg-gray-900/90 border border-emerald-500/40 flex items-center gap-2.5 text-left">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-400">실시간 대기 인원</div>
+                      <div className="text-base font-black text-emerald-400">
+                        {queueStats?.waitingCount || 1}명 대기 중
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-gray-900/90 border border-gray-800 flex items-center gap-2.5 text-left">
+                    <div className="w-8 h-8 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                      <Clock className="w-4 h-4 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-400">최대 대기 시간</div>
+                      <div className="text-base font-mono font-black text-white">
+                        {formatWaitTime(waitSeconds)}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-400 leading-relaxed max-w-sm mx-auto mb-4">
-                  동일한 웹페이지에 다른 사용자가 접속하여 매칭을 누르면 즉시 1:1로 연결됩니다.
-                </p>
+                <div className="p-3 rounded-xl bg-gray-950/70 border border-gray-800 text-[11px] text-gray-300 leading-relaxed max-w-sm mx-auto mb-4">
+                  💡 <strong>실시간 매칭 안내:</strong> 현재 웹소켓 서버에 접속 중인 유저는 <strong>{queueStats?.onlineUsersCount || 1}명</strong>입니다. 다른 브라우저나 탭에서 또 다른 사용자가 [실제 유저와 실시간 매칭]을 누르면 즉시 1:1로 연결됩니다.
+                </div>
 
                 {/* 시뮬레이션 즉시 전환 버튼 */}
                 <button

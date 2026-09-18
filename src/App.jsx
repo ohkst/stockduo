@@ -43,15 +43,36 @@ export default function App() {
   const [collaboratedStocks, setCollaboratedStocks] = useState([]);
   const [aiReport, setAiReport] = useState(null);
 
+  // 실제 서버 대기열 및 접속자 통계 상태 (진짜 실시간 통계)
+  const [queueStats, setQueueStats] = useState({
+    waitingCount: 0,
+    activeRoomsCount: 0,
+    onlineUsersCount: 1
+  });
+
   // 1. Socket.io 및 실시간 시세 초기화
   useEffect(() => {
     // 실시간 주식 시세 백엔드 동기화
     updateRealTimeStockPrices();
 
+    // 초기 통계 REST API 조회
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setQueueStats(json.data);
+        }
+      })
+      .catch(() => {});
+
     // 웹소켓 연결
     const socketInstance = io(window.location.origin, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5
+    });
+
+    socketInstance.on('queue_stats', (stats) => {
+      setQueueStats(stats);
     });
 
     setSocket(socketInstance);
@@ -132,8 +153,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans">
-      {/* 상단 네비게이션 */}
-      <Header onOpenApiKeyModal={() => setApiKeyModalOpen(true)} />
+      {/* 상단 네비게이션 (진짜 실시간 대기열 통계 연동) */}
+      <Header 
+        onOpenApiKeyModal={() => setApiKeyModalOpen(true)} 
+        queueStats={queueStats}
+      />
 
       {/* 메인 콘텐츠 영역 */}
       <main className="flex-1 pb-12">
@@ -142,6 +166,7 @@ export default function App() {
             defaultNickname={userProfile.nickname}
             defaultAvatar={userProfile.avatar}
             defaultStyle={userProfile.style.id}
+            queueStats={queueStats}
             onStartMatching={handleStartMatching}
           />
         )}
@@ -150,6 +175,7 @@ export default function App() {
           <StepMatching
             userProfile={userProfile}
             socket={socket}
+            queueStats={queueStats}
             onMatchComplete={handleMatchComplete}
             onSwitchToSimulation={handleSwitchToSimulation}
           />

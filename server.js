@@ -116,6 +116,29 @@ app.get('/api/stocks', async (req, res) => {
 const waitingQueue = []; // [{ socketId, userProfile, socket }]
 const activeRooms = new Map(); // roomId -> { id, players: [], basket: [null, null, null], mission }
 
+// 실제 접속자 및 대기열 실시간 통계 브로드캐스트
+function broadcastQueueStats() {
+  const stats = {
+    waitingCount: waitingQueue.length,
+    activeRoomsCount: activeRooms.size,
+    onlineUsersCount: io.engine.clientsCount || 1
+  };
+  io.emit('queue_stats', stats);
+  console.log(`[STATS] Real Waiting: ${stats.waitingCount} | Rooms: ${stats.activeRoomsCount} | Online: ${stats.onlineUsersCount}`);
+}
+
+// REST 통계 API
+app.get('/api/stats', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      waitingCount: waitingQueue.length,
+      activeRoomsCount: activeRooms.size,
+      onlineUsersCount: io ? io.engine.clientsCount : 0
+    }
+  });
+});
+
 const MISSIONS_LIST = [
   {
     id: "mission_blackswan",
@@ -147,6 +170,9 @@ const MISSIONS_LIST = [
 ];
 
 io.on('connection', (socket) => {
+  // 클라이언트 접속 시 현재 실제 통계 전송
+  broadcastQueueStats();
+
   // 1. 대기열 등록 (실제 유저 매칭 진입)
   socket.on('join_queue', (userProfile) => {
     // 기존에 대기열에 있다면 제거
@@ -194,6 +220,7 @@ io.on('connection', (socket) => {
       });
 
       console.log(`[MATCH SUCCESS] Room: ${roomId} | ${partner.userProfile.nickname} & ${userProfile.nickname}`);
+      broadcastQueueStats();
     } else {
       // 대기열에 추가
       waitingQueue.push({
@@ -203,6 +230,7 @@ io.on('connection', (socket) => {
       });
       socket.emit('queue_joined', { waitSeconds: 600 });
       console.log(`[QUEUE] ${userProfile.nickname} joined queue. (Waiting: ${waitingQueue.length})`);
+      broadcastQueueStats();
     }
   });
 
@@ -212,6 +240,7 @@ io.on('connection', (socket) => {
     if (idx !== -1) {
       waitingQueue.splice(idx, 1);
       console.log(`[QUEUE] Socket ${socket.id} left queue.`);
+      broadcastQueueStats();
     }
   });
 
@@ -272,6 +301,8 @@ io.on('connection', (socket) => {
         break;
       }
     }
+
+    broadcastQueueStats();
   });
 });
 

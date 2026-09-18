@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, ShieldCheck, Key, Users } from 'lucide-react';
 
-export default function Header({ onOpenApiKeyModal, apiKey, onReset }) {
-  // 실시간 접속 대기자 수 시뮬레이션 (32 ~ 48명 랜덤 변동)
-  const [onlineCount, setOnlineCount] = useState(38);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setOnlineCount(prev => {
-        const delta = Math.floor(Math.random() * 5) - 2;
-        return Math.max(28, Math.min(54, prev + delta));
-      });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+export default function Header({ onOpenApiKeyModal, apiKey, onReset, queueStats = { waitingCount: 0, onlineUsersCount: 1 } }) {
+  const waitingCount = queueStats.waitingCount || 0;
+  const onlineCount = queueStats.onlineUsersCount || 1;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-800/80 bg-[#0B0F19]/80 backdrop-blur-md">
@@ -43,15 +33,23 @@ export default function Header({ onOpenApiKeyModal, apiKey, onReset }) {
 
         {/* 우측 배지 및 옵션 */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* 실시간 매칭 대기자 수 */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900/90 border border-gray-800 text-xs text-gray-300">
+          {/* 진짜 실시간 매칭 대기자 수 & 접속자 수 */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-900/90 border border-gray-800 text-xs text-gray-300 shadow-inner">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${waitingCount > 0 ? 'bg-emerald-400' : 'bg-cyan-400'} opacity-75`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${waitingCount > 0 ? 'bg-emerald-500' : 'bg-cyan-500'}`}></span>
             </span>
             <Users className="w-3.5 h-3.5 text-gray-400" />
-            <span className="font-semibold text-emerald-400">{onlineCount}명</span>
-            <span className="text-gray-400 text-[11px] hidden sm:inline">대기 중</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400 text-[11px]">실시간 대기:</span>
+              <span className={`font-black ${waitingCount > 0 ? 'text-emerald-400 font-bold' : 'text-gray-300'}`}>
+                {waitingCount}명
+              </span>
+            </div>
+            <span className="text-gray-600 text-[10px] hidden sm:inline">|</span>
+            <span className="text-gray-400 text-[11px] hidden sm:inline">
+              접속 <strong className="text-cyan-300">{onlineCount}</strong>명
+            </span>
           </div>
 
           {/* Gemini API 설정 버튼 */}
