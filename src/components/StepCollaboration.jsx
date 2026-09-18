@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MOCK_STOCKS } from '../data/stocks';
+import RankEmblem from './RankEmblem';
 import { 
   Clock, Search, Check, Send, Sparkles, AlertCircle, Bot, ThumbsUp, Flame, 
-  Rocket, X, HelpCircle, ChevronRight, Award
+  Rocket, X, HelpCircle, ChevronRight, Award, Crown
 } from 'lucide-react';
 
 const QUICK_EMOJIS = ["👍", "🚀", "🔥", "💎", "👏", "👀"];
@@ -23,21 +24,21 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
     {
       id: 1,
       sender: "system",
-      text: `[${mission.title}] 미션 룸에 입장했습니다. 3분 안에 3종목을 함께 완성하세요!`
+      text: `[${mission.title}] 미션 룸에 입장했습니다. 전국 1위 챌린저 랭커와 함께 3분 안에 완성하세요!`
     },
     {
       id: 2,
       sender: "partner",
       name: partnerBot.name,
       avatar: partnerBot.avatar,
-      text: `반갑습니다 ${userProfile.nickname}님! 첫 번째 핵심 종목 하나 먼저 시원하게 제안해주세요!`
+      text: `반갑습니다 ${userProfile.nickname}님! ${partnerBot.rankTitle}(수익률 ${partnerBot.returnRate})입니다. 첫 번째 핵심 종목 먼저 골라주시면 제가 즉시 수급 분석해드리겠습니다!`
     }
   ]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef(null);
 
   // 파트너 봇 역제안 모달 상태
-  const [proposalModal, setProposalModal] = useState(null); // { stock, reason }
+  const [proposalModal, setProposalModal] = useState(null);
 
   // 자동 스크롤
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
   // 고유 섹터 리스트
   const sectors = ["전체", ...new Set(MOCK_STOCKS.map(s => s.sector.split('/')[0].trim()))];
 
-  // 필터링된 주식 목록 (이미 바스켓에 있는 종목 제외)
+  // 필터링된 주식 목록
   const filteredStocks = MOCK_STOCKS.filter(stock => {
     const isAlreadyInBasket = basket.some(b => b?.code === stock.code);
     if (isAlreadyInBasket) return false;
@@ -79,14 +80,12 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
     return matchesSearch && matchesSector;
   });
 
-  // 슬롯 1 채워진 후 1.5초 뒤 파트너 봇의 슬롯 2 역제안 트리거
+  // 슬롯 1 완료 후 1.5초 뒤 봇 역제안 트리거
   const triggerPartnerProposal = () => {
     setTimeout(() => {
-      // 봇이 제안할 종목 찾기
       const candidateCode = partnerBot.suggestStock || "005380";
       const candidateStock = MOCK_STOCKS.find(s => s.code === candidateCode) || MOCK_STOCKS[2];
       
-      // 이미 바스켓에 있다면 다른 종목 선정
       let targetStock = candidateStock;
       if (basket[0]?.code === candidateStock.code) {
         targetStock = MOCK_STOCKS.find(s => s.code === "033780") || MOCK_STOCKS[8];
@@ -99,32 +98,28 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
           sender: "partner",
           name: partnerBot.name,
           avatar: partnerBot.avatar,
-          text: `제가 두 번째 종목으로 [${targetStock.name}]을 제안해봅니다! 한번 검토해보시겠어요?`
+          text: `[${targetStock.name}]을 두 번째 종목으로 역제안합니다! 제 누적 수익률 ${partnerBot.returnRate} 노하우를 담은 황금 종목입니다.`
         }
       ]);
 
       // 모달 오픈
       setProposalModal({
         stock: targetStock,
-        reason: partnerBot.suggestReason || "펀더멘털 탄탄하고 미션 방어력에 제격입니다!"
+        reason: partnerBot.suggestReason || "수급 모멘텀과 밸류업 하방 지지력이 압도적인 종목입니다."
       });
     }, 1500);
   };
 
-  // 사용자 종목 제안 처리
+  // 사용자 종목 제안
   const handleProposeStock = (stock) => {
-    // 빈 첫 번째 슬롯 찾기
     const emptyIndex = basket.findIndex(item => item === null);
     if (emptyIndex === -1) return;
 
-    // 슬롯 1 제안 시
     if (emptyIndex === 0) {
-      // 슬롯 1 등록
       const newBasket = [...basket];
       newBasket[0] = stock;
       setBasket(newBasket);
 
-      // 사용자 채팅 기록
       setMessages(prev => [
         ...prev,
         {
@@ -136,11 +131,10 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
         }
       ]);
 
-      // 0.9초 후 봇 자동 리액션 및 승인
       setTimeout(() => {
         const replyText = partnerBot.replies?.onFirstSelect
           ? partnerBot.replies.onFirstSelect(stock)
-          : `오! ${stock.name} 탁월한 선택입니다. 바로 승인합니다 👍`;
+          : `역시 훌륭한 안목이십니다! ${stock.name} 즉시 승인하고 제 2번째 추천 들어갑니다 👍`;
 
         setMessages(prev => [
           ...prev,
@@ -153,12 +147,9 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
           }
         ]);
 
-        // 1.5초 후 봇 역제안 트리거
         triggerPartnerProposal();
       }, 900);
-    } 
-    // 슬롯 3 제안 시 (슬롯 2는 봇 역제안으로 채워졌거나 사용자가 채움)
-    else {
+    } else {
       const newBasket = [...basket];
       newBasket[emptyIndex] = stock;
       setBasket(newBasket);
@@ -174,7 +165,6 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
         }
       ]);
 
-      // 0.9초 후 파트너 최종 승인
       setTimeout(() => {
         setMessages(prev => [
           ...prev,
@@ -183,19 +173,18 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
             sender: "partner",
             name: partnerBot.name,
             avatar: partnerBot.avatar,
-            text: partnerBot.replies?.onFinalAgree || "완벽한 포트폴리오 조합입니다! AI 심판관님 채점 점수 기대되네요 🚀"
+            text: partnerBot.replies?.onFinalAgree || "완벽한 포트폴리오입니다! AI 심판관 알파독에게 바로 넘겨보죠 🚀"
           }
         ]);
       }, 900);
     }
   };
 
-  // 파트너 봇 역제안 승인
+  // 봇 역제안 승인
   const handleAcceptProposal = () => {
     if (!proposalModal) return;
     const stock = proposalModal.stock;
     
-    // 슬롯 2 (또는 첫 번째 빈 슬롯)에 채우기
     const emptyIndex = basket.findIndex(item => item === null);
     if (emptyIndex !== -1) {
       const newBasket = [...basket];
@@ -210,21 +199,21 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
         sender: "user",
         name: userProfile.nickname,
         avatar: userProfile.avatar,
-        text: `파트너님의 [${stock.name}] 제안을 승인했습니다! 탁월한 선택이네요.`
+        text: `챌린저 랭커님의 [${stock.name}] 제안을 승인했습니다! 확실히 믿음이 가네요.`
       },
       {
         id: Date.now() + 1,
         sender: "partner",
         name: partnerBot.name,
         avatar: partnerBot.avatar,
-        text: `감사합니다! 이제 마지막 1종목만 멋지게 골라주시면 포트폴리오 완성입니다 💪`
+        text: `감사합니다! 이제 마지막 1종목만 멋지게 채우면 초과수익 보장 포트폴리오 완성입니다 💪`
       }
     ]);
 
     setProposalModal(null);
   };
 
-  // 파트너 봇 역제안 거절
+  // 봇 역제안 거절
   const handleRejectProposal = () => {
     if (!proposalModal) return;
     setMessages(prev => [
@@ -234,20 +223,19 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
         sender: "user",
         name: userProfile.nickname,
         avatar: userProfile.avatar,
-        text: `[${proposalModal.stock.name}]도 좋지만, 다른 종목을 한번 찾아볼게요!`
+        text: `[${proposalModal.stock.name}]도 좋지만, 다른 종목을 직접 찾아보겠습니다!`
       },
       {
         id: Date.now() + 1,
         sender: "partner",
         name: partnerBot.name,
         avatar: partnerBot.avatar,
-        text: `네 좋습니다! 원하시는 다른 종목을 직접 골라 제안해주세요 🙂`
+        text: `존중합니다! 원하시는 다른 최적의 종목을 직접 골라 제안해주세요 🙂`
       }
     ]);
     setProposalModal(null);
   };
 
-  // 채팅 메시지 전송
   const handleSendChat = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -265,13 +253,12 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
     ]);
     setChatInput("");
 
-    // 간단한 봇 자동 응답 (티키타카)
     setTimeout(() => {
       const botReplies = [
-        "동의합니다! 지금 장세에서 아주 설득력 있는 시각이네요.",
-        "오호 그렇게 볼 수도 있겠군요! 데이터 수급도 뒷받침되고 있습니다.",
-        "좋습니다. 우리 듀오 호흡이 찰떡이네요 🤝",
-        "미션 목표에 아주 잘 부합하는 전략인 것 같습니다!"
+        "챌린저 랭커 관점에서도 아주 정확한 시장 분석입니다!",
+        "데이터와 외국인 수급이 정확히 일치하는 날카로운 포인트네요.",
+        "우리 듀오 호흡이 기가 막힙니다. 알파독도 감탄할 것 같네요 🤝",
+        "미션 정합성을 극대화하는 최고의 선택지입니다!"
       ];
       const randomReply = botReplies[Math.floor(Math.random() * botReplies.length)];
       setMessages(prev => [
@@ -287,7 +274,6 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
     }, 1000);
   };
 
-  // 이모지 클릭 전송
   const handleSendEmoji = (emoji) => {
     setMessages(prev => [
       ...prev,
@@ -301,7 +287,6 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
     ]);
   };
 
-  // 3종목 모두 완료 여부
   const isBasketComplete = basket.every(s => s !== null);
 
   return (
@@ -323,8 +308,13 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
           </div>
         </div>
 
-        {/* 3분 타이머 */}
+        {/* 3분 타이머 & 랭커 동반 배지 */}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs font-bold">
+            <Crown className="w-3.5 h-3.5 fill-amber-300" />
+            <span>TOP 0.1% {partnerBot.name} 협업 중</span>
+          </div>
+
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono font-bold text-lg ${
             timeLeft <= 60 
               ? 'bg-red-500/10 border-red-500/50 text-red-400 animate-pulse' 
@@ -396,7 +386,7 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
                     <div className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center mx-auto mb-1 text-gray-400 font-bold">
                       {idx + 1}
                     </div>
-                    <span>{idx === 0 ? '첫 번째 종목 제안 대기' : idx === 1 ? '두 번째 종목 협의 대기' : '마지막 3번째 종목 대기'}</span>
+                    <span>{idx === 0 ? '첫 번째 종목 제안 대기' : idx === 1 ? '챌린저 랭커 역제안 협의' : '마지막 3번째 종목 대기'}</span>
                   </div>
                 )}
               </div>
@@ -495,22 +485,27 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
           </div>
         </div>
 
-        {/* 우측 실시간 듀오 채팅 (5컬럼) */}
+        {/* 우측 실시간 듀오 채팅 (상대방 앰블럼 헤더 장착) */}
         <div className="lg:col-span-5 bg-gray-900/90 border border-gray-800 rounded-3xl p-4 flex flex-col h-[520px]">
-          {/* 채팅 헤더 */}
+          {/* 채팅 헤더 - 앰블럼 및 수익률 정보 노출 */}
           <div className="flex items-center justify-between pb-3 border-b border-gray-800 mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xl">{partnerBot.avatar}</span>
+              <span className="text-2xl">{partnerBot.avatar}</span>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white">{partnerBot.name}</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span className="text-xs font-black text-amber-300">{partnerBot.name}</span>
+                  <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                 </div>
-                <span className="text-[10px] text-gray-400">{partnerBot.styleTag}</span>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <span className="font-bold text-red-400">수익률 {partnerBot.returnRate}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-emerald-400 font-semibold">승률 {partnerBot.winRate}</span>
+                </div>
               </div>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold">
-              실시간 협의 중
+
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 font-black">
+              TOP 0.1% 챌린저
             </span>
           </div>
 
@@ -571,7 +566,7 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="파트너와 의견 조율하기..."
+              placeholder="챌린저 랭커와 실시간 의견 조율하기..."
               className="flex-1 px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
             />
             <button
@@ -589,29 +584,41 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
         <div className="pt-2 animate-scale-up">
           <button
             onClick={() => onCompleteCollaboration(basket)}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-black text-lg flex items-center justify-center gap-2 shadow-2xl shadow-emerald-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all"
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 hover:from-amber-300 hover:to-emerald-300 text-black font-black text-lg flex items-center justify-center gap-2 shadow-2xl shadow-amber-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all"
           >
-            <Sparkles className="w-6 h-6 animate-spin" />
-            <span>AI 심판관 알파독(AlphaDog) 호출하기 (케미 & 팩폭 심사)</span>
+            <Crown className="w-6 h-6 fill-black" />
+            <span>AI 심판관 알파독(AlphaDog) 호출하기 (챌린저 듀오 종합 심사)</span>
             <ChevronRight className="w-6 h-6" />
           </button>
         </div>
       )}
 
-      {/* 5. 파트너 봇의 역제안 도착 팝업 모달 */}
+      {/* 5. 👑 최상급 챌린저 랭커의 역제안 도착 팝업 모달 */}
       {proposalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md bg-gray-900 border-2 border-emerald-500/60 rounded-3xl p-6 shadow-2xl text-slate-100 animate-scale-up">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{partnerBot.avatar}</span>
-              <div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
-                  파트너 역제안 도착!
-                </span>
-                <h3 className="text-lg font-black text-white mt-0.5">
-                  {partnerBot.name}님의 추천 종목
-                </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md bg-gradient-to-b from-gray-900 via-amber-950/30 to-gray-950 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl text-slate-100 animate-scale-up">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{partnerBot.avatar}</span>
+                <div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black border border-amber-400/40">
+                    👑 TOP 0.1% 챌린저의 특급 역제안!
+                  </span>
+                  <h3 className="text-lg font-black text-white mt-0.5">
+                    {partnerBot.name}의 추천 종목
+                  </h3>
+                </div>
               </div>
+            </div>
+
+            {/* 상대방 앰블럼 미니 버전 */}
+            <div className="mb-3">
+              <RankEmblem 
+                tier={partnerBot.tier} 
+                returnRate={partnerBot.returnRate} 
+                winRate={partnerBot.winRate} 
+                size="sm" 
+              />
             </div>
 
             {/* 추천 종목 정보 카드 */}
@@ -631,8 +638,8 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
                   </span>
                 </div>
               </div>
-              <div className="text-xs text-emerald-300/90 bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-900/50 leading-relaxed">
-                💬 <strong>추천 이유:</strong> "{proposalModal.reason}"
+              <div className="text-xs text-amber-200/90 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30 leading-relaxed">
+                👑 <strong>랭커 분석 코멘트:</strong> "{proposalModal.reason}"
               </div>
             </div>
 
@@ -643,14 +650,14 @@ export default function StepCollaboration({ userProfile, partnerBot, mission, on
                 onClick={handleRejectProposal}
                 className="py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition"
               >
-                다른 종목 찾기
+                직접 고르기
               </button>
               <button
                 type="button"
                 onClick={handleAcceptProposal}
-                className="py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                className="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black font-black text-xs transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5"
               >
-                <Check className="w-4 h-4" /> 승인하기 (슬롯 채우기)
+                <Check className="w-4 h-4" /> 랭커 제안 승인하기
               </button>
             </div>
           </div>

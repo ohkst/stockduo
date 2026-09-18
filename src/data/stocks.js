@@ -47,7 +47,7 @@ export const MOCK_STOCKS = [
   {
     code: "247540",
     name: "에코프로비엠",
-    market: "KOSDAQ",
+    market: "KOSPI",
     sector: "2차전지 / 소재",
     price: 162000,
     change: -2.11,
@@ -165,32 +165,42 @@ export const MISSIONS = [
   }
 ];
 
-// 스마트 가상 개미봇 프로필 및 반응 시나리오
+// 최상급 랭커 (Top 0.1% Challenger) 가상 파트너 데이터
 export const BOT_PARTNERS = [
   {
-    id: "bot_chart_master",
-    name: "여의도_차트도사",
-    avatar: "📈",
-    persona: "기술적 분석과 외국인 수급을 맹신하는 모멘텀 트레이더",
-    styleTag: "모멘텀 추세추종러",
+    id: "bot_challenger_pro",
+    name: "여의도_천상계_고수",
+    avatar: "👑",
+    tier: "CHALLENGER",
+    tierName: "TOP 0.1% 챌린저",
+    rankTitle: "실전투자대회 3관왕 랭커",
+    returnRate: "+284.5%",
+    winRate: "91.4%",
+    persona: "누적수익률 284%를 달성한 전국 최상위 0.1% 챌린저 랭커",
+    styleTag: "👑 천상계 퀀트 모멘텀",
     suggestStock: "005380", // 현대차
-    suggestReason: "외인/기관 양매수 진입했고 24만원 박스권 상단 돌파 자리입니다. 밸류업 수혜로 하방 탄탄해요!",
+    suggestReason: "천상계 랭커의 눈으로 볼 때, 외국인 프로그램 매수세 4거래일 연속 유입 중이며 밸류업 지수 편입 모멘텀으로 하방 경직성이 완벽합니다. 제 누적 284% 승률을 걸고 추천합니다!",
     replies: {
-      onFirstSelect: (stock) => `오! ${stock.name} 탁월한 선택입니다. 60일 이평선 지지받고 골든크로스 직전이네요 👍`,
-      onFinalAgree: "완벽한 포트폴리오 조합입니다! AI 알파독 수석 심판관한테 바로 점수 받아보시죠 🚀"
+      onFirstSelect: (stock) => `역시 안목이 남다르시네요! ${stock.name}은 현재 기관 순매수 1순위입니다. 바로 승인하고 제 필살 종목 하나 얹겠습니다 🤝`,
+      onFinalAgree: "완벽한 포트폴리오입니다! 이 조합이면 AI 심판관 알파독도 무조건 90점 이상 극찬할 수밖에 없습니다. 바로 결과 확인하시죠 🚀"
     }
   },
   {
-    id: "bot_buffett",
-    name: "한강물체크_버핏",
-    avatar: "🛡️",
-    persona: "잃지 않는 투자와 배당, 밸류에이션을 중시하는 가치투자가",
-    styleTag: "단단한 가치투자자",
+    id: "bot_grandmaster_hedge",
+    name: "청담동_헤지펀드_마스터",
+    avatar: "💎",
+    tier: "CHALLENGER",
+    tierName: "TOP 0.1% 챌린저",
+    rankTitle: "글로벌 매크로 헤지 전문",
+    returnRate: "+226.8%",
+    winRate: "89.2%",
+    persona: "변동성 장세에서도 절대 손실을 보지 않는 탑티어 자산배분가",
+    styleTag: "💎 절대수익 헤지펀더",
     suggestStock: "033780", // KT&G
-    suggestReason: "시장 흔들릴 때 KT&G만한 든든한 방패가 없습니다. 연 배당수익률 5.5%에 현금성 자산 풍부해요!",
+    suggestReason: "매크로 지표 상 지금은 방어주 편입이 필수입니다. 배당수익률 5.5%에 현금흐름 독보적이라 시장 충격에도 계좌를 단단히 지켜줄 든든한 방패입니다.",
     replies: {
-      onFirstSelect: (stock) => `호오, ${stock.name} 좋네요! 펀더멘털 탄탄하고 PBR 저평가 구간이라 안전마진 충분합니다 👏`,
-      onFinalAgree: "야수성과 안전성이 기가 막히게 조화되었습니다. 알파독 심판관님 채점 점수 90점 이상 기대됩니다!"
+      onFirstSelect: (stock) => `호오, ${stock.name} 선택 아주 훌륭합니다. 시장 변동성을 감안한 전략적 초이스네요. 바로 승인합니다 👍`,
+      onFinalAgree: "야수성과 안전성이 완벽히 조화된 황금 포트폴리오입니다. 알파독 심판관에게 점수 받아보시죠!"
     }
   }
 ];

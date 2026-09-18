@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dice5, Sparkles, UserCheck, ShieldCheck, ArrowRight, Bot, Target } from 'lucide-react';
+import { Dice5, Sparkles, UserCheck, ShieldCheck, ArrowRight, Bot, Target, Crown } from 'lucide-react';
 
 const RANDOM_NICKNAMES = [
   "불나방_개미",
@@ -25,7 +25,6 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
   const [nickname, setNickname] = useState(defaultNickname || "불나방_개미");
   const [avatar, setAvatar] = useState(defaultAvatar || "🦁");
   const [style, setStyle] = useState(defaultStyle || "beast");
-  const [atozMode, setAtozMode] = useState(true);
 
   const rollRandomNickname = () => {
     const pick = RANDOM_NICKNAMES[Math.floor(Math.random() * RANDOM_NICKNAMES.length)];
@@ -40,7 +39,7 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
       nickname: nickname.trim(),
       avatar,
       style: INVESTMENT_STYLES.find(s => s.id === style) || INVESTMENT_STYLES[0],
-      atozMode
+      matchHighRanker: true
     });
   };
 
@@ -138,20 +137,22 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
           </div>
         </div>
 
-        {/* 심사위원 시연용 AtoZ 봇 모드 안내 */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 to-indigo-950/40 border border-purple-500/30 flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 shrink-0">
-            <Bot className="w-5 h-5" />
+        {/* 👑 최상급 랭커 우선 매칭 특별 알림 */}
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-yellow-950/30 to-gray-950 border border-amber-500/40 flex items-start gap-3 shadow-lg shadow-amber-500/10">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 text-black shrink-0 shadow-md">
+            <Crown className="w-5 h-5 fill-black" />
           </div>
           <div className="text-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-purple-200">심사위원 시연 모드 (AtoZ 시뮬레이션)</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold">
-                권장 활성화
+              <span className="font-black text-amber-200 flex items-center gap-1.5">
+                <span>상대방 매칭 등급 : TOP 0.1% 챌린저 랭커 확정</span>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black border border-amber-400/40">
+                CHALLENGER
               </span>
             </div>
-            <p className="text-purple-300/80 leading-relaxed">
-              다른 실제 유저 대기 없이도 <strong>스마트 가상 파트너 봇(여의도_차트도사)</strong>이 0.9초 리액션, 역제안 모달, 실시간 상호 합의 등 100% 리얼 협업을 즉시 시뮬레이션합니다.
+            <p className="text-amber-300/80 leading-relaxed">
+              시뮬레이션 시작 시 <strong>누적 수익률 +284%</strong>를 기록한 전국 최상위 천상계 유저(수익률 엠블럼 보유)가 듀오 파트너로 자동 매칭됩니다.
             </p>
           </div>
         </div>
@@ -159,9 +160,9 @@ export default function StepLobby({ onStartMatching, defaultNickname, defaultAva
         {/* 매칭 시작 버튼 */}
         <button
           type="submit"
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
+          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
         >
-          <span>익명 파트너 탐색 & 미션 룰렛 시작</span>
+          <span>최상급 랭커 파트너 탐색 & 미션 룰렛 시작</span>
           <ArrowRight className="w-5 h-5" />
         </button>
       </form>

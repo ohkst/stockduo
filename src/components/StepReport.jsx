@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import html2canvas from 'html2canvas';
+import RankEmblem from './RankEmblem';
 import { 
   Trophy, Sparkles, Download, Share2, ExternalLink, RotateCcw, 
-  TrendingUp, Shield, Zap, AlertTriangle, CheckCircle, ArrowRight, X
+  TrendingUp, Shield, Zap, AlertTriangle, CheckCircle, ArrowRight, X, Crown
 } from 'lucide-react';
 
 export default function StepReport({ 
@@ -22,15 +23,13 @@ export default function StepReport({
 
   // 폭죽 및 점수 카운트업
   useEffect(() => {
-    // Confetti 발사
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: 120,
+      spread: 80,
       origin: { y: 0.6 }
     });
 
-    // 점수 카운트업
-    const target = aiReport.chemistryScore || 85;
+    const target = aiReport.chemistryScore || 92;
     const duration = 1200;
     const stepTime = 20;
     const steps = duration / stepTime;
@@ -62,7 +61,7 @@ export default function StepReport({
       });
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `StockDuo_${userProfile.nickname}_${partnerBot.name}_Report.png`;
+      link.download = `StockDuo_Challenger_${userProfile.nickname}_Report.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -73,12 +72,8 @@ export default function StepReport({
     }
   };
 
-  // 모의 주문 실행 시뮬레이션
   const handleExecuteBasketOrder = () => {
     setOrderExecuted(true);
-    setTimeout(() => {
-      // 3초 후 초기화
-    }, 4000);
   };
 
   const getRoleIcon = (roleName) => {
@@ -102,55 +97,72 @@ export default function StepReport({
         <button
           onClick={handleDownloadCard}
           disabled={isCapturing}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-black text-xs font-black shadow-lg shadow-amber-500/20 transition disabled:opacity-50"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>{isCapturing ? '카드 생성 중...' : '인스타 공유 카드 다운로드'}</span>
+          <span>{isCapturing ? '카드 생성 중...' : '챌린저 듀오 인증 카드 다운로드'}</span>
         </button>
       </div>
 
       {/* 2. 캡처 대상 종합 결과 카드 */}
       <div 
         ref={cardRef} 
-        className="bg-gradient-to-b from-gray-900 via-gray-900 to-[#0B0F19] border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden"
+        className="bg-gradient-to-b from-gray-900 via-gray-900 to-[#0B0F19] border-2 border-amber-400/50 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden"
       >
         {/* 장식용 글로우 배경 */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
 
         {/* 상단 듀오 정보 및 미션 */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-800/80 relative z-10">
           <div>
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
-              {mission.title}
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">
+                {mission.title}
+              </span>
+              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 flex items-center gap-1">
+                <Crown className="w-3 h-3 fill-amber-300" />
+                <span>TOP 0.1% 챌린저 협업 인증</span>
+              </span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
               {aiReport.teamTitle}
             </h2>
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-              <span>{userProfile.avatar} {userProfile.nickname}</span>
-              <span>×</span>
-              <span>{partnerBot.avatar} {partnerBot.name}</span>
+
+            <div className="flex items-center gap-2 mt-2 text-xs text-gray-300">
+              <span className="font-semibold">{userProfile.avatar} {userProfile.nickname}</span>
+              <span className="text-gray-500">×</span>
+              <span className="font-black text-amber-300">{partnerBot.avatar} {partnerBot.name}</span>
             </div>
           </div>
 
-          {/* 케미 점수 배지 */}
-          <div className="flex items-center gap-3 bg-gray-950/90 border border-emerald-500/50 p-4 rounded-2xl shadow-xl">
-            <Trophy className="w-8 h-8 text-yellow-400 animate-bounce" />
-            <div>
-              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">케미스트리 점수</div>
-              <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                {animatedScore}<span className="text-lg text-emerald-400 font-bold">점</span>
+          {/* 상대방 수익률 등급 앰블럼 & 케미 점수 배지 */}
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <RankEmblem 
+              tier={partnerBot.tier} 
+              returnRate={partnerBot.returnRate} 
+              winRate={partnerBot.winRate} 
+              size="md" 
+            />
+
+            <div className="flex items-center gap-3 bg-gray-950/90 border border-amber-400/50 p-3.5 rounded-2xl shadow-xl shrink-0">
+              <Trophy className="w-7 h-7 text-yellow-400 animate-bounce" />
+              <div>
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">케미스트리 점수</div>
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-400">
+                  {animatedScore}<span className="text-base text-yellow-400 font-bold">점</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* 수석 심판관 알파독 종합 팩폭 심사평 */}
-        <div className="my-6 p-4 sm:p-5 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 relative z-10">
+        <div className="my-6 p-4 sm:p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 relative z-10">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">🐕‍🦺</span>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
               증권사 AI 수석 심판관 (AlphaDog) 종합 판정
             </span>
           </div>
@@ -188,7 +200,7 @@ export default function StepReport({
 
                   <div className="flex items-center gap-1.5 my-2">
                     {getRoleIcon(r.role)}
-                    <span className="text-xs font-bold text-emerald-400">
+                    <span className="text-xs font-bold text-amber-300">
                       {r.role}
                     </span>
                   </div>
@@ -232,14 +244,14 @@ export default function StepReport({
 
         {/* 시너지 포인트 & 리스크 경고 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10 text-xs">
-          <div className="p-3.5 rounded-2xl bg-gray-950/80 border border-emerald-950/60">
-            <div className="font-bold text-emerald-400 mb-2 flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" /> 듀오 시너지 포인트
+          <div className="p-3.5 rounded-2xl bg-gray-950/80 border border-amber-950/60">
+            <div className="font-bold text-amber-300 mb-2 flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" /> 챌린저 듀오 시너지 포인트
             </div>
             <ul className="space-y-1.5 text-gray-300">
               {aiReport.synergyPoints?.map((p, idx) => (
                 <li key={idx} className="flex items-start gap-1.5">
-                  <span className="text-emerald-500">•</span>
+                  <span className="text-amber-400">•</span>
                   <span>{p}</span>
                 </li>
               ))}
@@ -268,7 +280,7 @@ export default function StepReport({
         </div>
       </div>
 
-      {/* 3. 한국투자증권 MTS 연계 메인 배너 (명세서 4.3 요구사항) */}
+      {/* 3. 한국투자증권 MTS 연계 메인 배너 */}
       <div 
         onClick={() => setMtsModalOpen(true)}
         className="p-6 rounded-3xl bg-gradient-to-r from-blue-900/60 via-indigo-900/40 to-blue-950/80 border-2 border-blue-500/50 hover:border-blue-400 shadow-2xl shadow-blue-500/10 cursor-pointer transition-all hover:scale-[1.01] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
@@ -287,7 +299,7 @@ export default function StepReport({
               한국투자증권 MTS 가서 완성된 3종목 매수하기
             </h3>
             <p className="text-xs text-blue-200/80 mt-0.5">
-              합의된 3종목 바스켓을 한국투자증권 MTS에 1-클릭으로 바로 전송하세요.
+              챌린저와 합의된 3종목 바스켓을 한국투자증권 MTS에 1-클릭으로 바로 전송하세요.
             </p>
           </div>
         </div>
@@ -325,7 +337,6 @@ export default function StepReport({
               </div>
             </div>
 
-            {/* 완성된 3종목 바스켓 명단 및 개별 딥링크 */}
             <div className="space-y-2 mb-5">
               <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                 바스켓 주문 종목 (3건)
@@ -356,7 +367,6 @@ export default function StepReport({
               ))}
             </div>
 
-            {/* 일괄 매수 실행 시뮬레이션 상태 */}
             {orderExecuted ? (
               <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 text-center mb-4 animate-scale-up">
                 <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-1.5" />
@@ -375,7 +385,6 @@ export default function StepReport({
               </button>
             )}
 
-            {/* 공식 사이트 및 모바일 웹 이동 링크 */}
             <div className="pt-3 border-t border-gray-800 flex items-center justify-between text-xs text-gray-400">
               <a
                 href="https://www.truefriend.com"
